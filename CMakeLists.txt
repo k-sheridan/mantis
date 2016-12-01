@@ -32,5 +32,6 @@ catkin_package(
 
 add_library(montecarlo include/mantis/MonteCarlo.cpp)
 
+add_executable(mantis_client src/mantis_client.cpp)
 
-
+target_link_libraries(mantis_client ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
