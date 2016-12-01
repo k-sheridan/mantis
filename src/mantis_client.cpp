@@ -40,7 +40,7 @@ cv::Mat get3x3FromVector(boost::array<double, 9> vec)
 
 void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
-	cv::Mat temp = cv_bridge::toCvShare(img, "mono8")->image.clone();
+	cv::Mat temp = cv_bridge::toCvShare(img, "bgr8")->image.clone();
 
 	frame0.img = temp;
 	frame0.t = img->header.stamp;
