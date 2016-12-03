@@ -10,6 +10,9 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/video.hpp"
+
+void detectLines();
+
 struct Frame
 {
 	cv::Mat img;
@@ -42,15 +45,39 @@ void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::C
 {
 	cv::Mat temp = cv_bridge::toCvShare(img, "bgr8")->image.clone();
 
-	frame0.img = temp;
-	frame0.t = img->header.stamp;
 	frame0.K = get3x3FromVector(cam->K);
 	frame0.D = cv::Mat(cam->D, false);
 
-	cv::imshow("show",frame0.img);
-	cv::waitKey(30);
+	cv::fisheye::undistortImage(temp,temp,frame0.K,frame0.D, frame0.K);
+
+	frame0.img = temp;
+	frame0.t = img->header.stamp;
+
+
+	ROS_INFO_STREAM("intrinsic; " << frame0.K);
+	ROS_INFO_STREAM("intrinsic; " << frame0.D);
+
+	detectLines();
+
 }
 
+void detectLines()
+{
+	cv::Mat mono, cmono;
+	cv::cvtColor(frame0.img, mono, CV_BGR2GRAY);
+
+	cv::Canny(mono, cmono, 50, 200, 3);
+
+	std::vector<cv::Vec4i> Lines;
+	cv::HoughLinesP(cmono, Lines, 1, CV_PI/180, 50, 50, 10);
+	for (size_t i = 0; i < Lines.size(); i++)
+	{
+	    cv::Vec4i l = Lines[i];
+	    cv::line( mono, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0,0,255), 3, CV_AA);
+	}
+	cv::imshow("show",mono);
+	cv::waitKey(30);
+}
 void getParameters()
 {
 	ros::param::param <std::string> ("~camera0Topic", camera0Topic, "bottomCamera/image_color");
