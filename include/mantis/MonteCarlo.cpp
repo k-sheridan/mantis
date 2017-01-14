@@ -9,13 +9,12 @@
 
 MonteCarlo::MonteCarlo() {
 	// TODO Auto-generated constructor stub
-
 }
 
 MonteCarlo::~MonteCarlo() {
 	// TODO Auto-generated destructor stub
 }
 
-tf::Transform Mantis::generateRandomTransform(){
+tf::Transform MonteCarlo::generateRandomTransform(){
 
 }
