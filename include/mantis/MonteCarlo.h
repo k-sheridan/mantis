@@ -29,6 +29,14 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf/tf.h>
 
+#define DEFAULT_MINX  -10
+#define DEFAULT_MINY  -10
+#define DEFAULT_MINZ    0
+#define DEFAULT_MAXX   10
+#define DEFAULT_MAXY   10
+#define DEFAULT_MAXZ    5
+
+
 class MonteCarlo {
 public:
 	MonteCarlo();
@@ -38,6 +46,8 @@ public:
 
 private:
 	cv::RNG rng;
+	float MINX, MINY, MINZ, MAXX, MAXY, MAXZ;
+
 };
 
 #endif /* MANTIS_INCLUDE_MANTIS_MONTECARLO_H_ */
