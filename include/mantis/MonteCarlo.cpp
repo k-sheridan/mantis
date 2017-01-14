@@ -16,3 +16,6 @@ MonteCarlo::~MonteCarlo() {
 	// TODO Auto-generated destructor stub
 }
 
+tf::Transform Mantis::generateRandomTransform(){
+
+}

@@ -25,7 +25,7 @@ include_directories(
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES pauvsi_vio
-#  CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs
+# CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs tf tf2_ros
 #  DEPENDS system_lib
    DEPENDS opencv
 )
@@ -33,5 +33,8 @@ catkin_package(
 add_library(montecarlo include/mantis/MonteCarlo.cpp)
 
 add_executable(mantis_client src/mantis_client.cpp)
+add_executable(mantis_sever src/mantis_server.cpp)
 
+target_link_libraries(montecarlo ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(mantis_client ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(mantis_sever ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} montecarlo)
