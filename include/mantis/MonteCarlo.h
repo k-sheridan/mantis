@@ -28,8 +28,11 @@
 #include <tf2_ros/message_filter.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf/tf.h>
+#include <tf/transform_listener.h>
+#include <tf/tf.h>
+#include <tf/tfMessage.h>
 
-#include "error/computeError.h"
+#include "error/MantisRequest.h"
 
 #define DEFAULT_MINX  -10
 #define DEFAULT_MINY  -10
@@ -41,15 +44,20 @@
 
 class MonteCarlo {
 public:
+	MantisRequest req;
+
 	MonteCarlo();
 	virtual ~MonteCarlo();
 
 	tf::Transform generateRandomTransform();
+	tf::TransformListener tfListener;
 
 private:
 	cv::RNG rng;
 	float MINX, MINY, MINZ, MAXX, MAXY, MAXZ;
 
 };
+
+#include "error/computeError.h"
 
 #endif /* MANTIS_INCLUDE_MANTIS_MONTECARLO_H_ */
