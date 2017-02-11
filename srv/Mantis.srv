@@ -1,0 +1,11 @@
+Header header
+
+std_msgs/Float32MultiArray white1
+std_msgs/Float32MultiArray red1
+std_msgs/Float32MultiArray green1
+
+std_msgs/Float32MultiArray white2
+std_msgs/Float32MultiArray red2
+std_msgs/Float32MultiArray green2
+
+---
