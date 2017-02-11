@@ -29,6 +29,8 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf/tf.h>
 
+#include "error/computeError.h"
+
 #define DEFAULT_MINX  -10
 #define DEFAULT_MINY  -10
 #define DEFAULT_MINZ    0

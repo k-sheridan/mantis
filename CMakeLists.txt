@@ -30,7 +30,8 @@ catkin_package(
    DEPENDS opencv
 )
 
-add_library(montecarlo include/mantis/MonteCarlo.cpp)
+add_library(montecarlo include/mantis/MonteCarlo.cpp include/mantis/error/computeError.h)
+set_target_properties(montecarlo PROPERTIES LINKER_LANGUAGE_CXX)
 
 add_executable(mantis_client src/mantis_client.cpp)
 add_executable(mantis_server src/mantis_server.cpp)
