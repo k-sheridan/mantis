@@ -9,3 +9,7 @@ std_msgs/Float32MultiArray red2
 std_msgs/Float32MultiArray green2
 
 ---
+
+geometry_msgs/Pose pose
+std_msgs/Float64 weight
+std_msgs/Int32 num_particles 
