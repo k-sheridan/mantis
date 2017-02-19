@@ -28,10 +28,26 @@ struct Frame
 	cv::Mat K;
 	cv::Mat D;
 	cv::Mat canny;
-	std::vector<cv::KeyPoint> fast_corners;
+	std::vector<std::vector<cv::Point> > contours;
+	std::vector<cv::Vec4i> contour_hierarchy;
 };
 
 Frame frame0;
+
+void convert2Binary(cv::Mat& img){
+
+	for(int i = 0; i < img.rows; i++)
+	{
+		for(int j = 0; j < img.cols; j++)
+		{
+			if(img.at<uint8_t>(i, j))
+			{
+				img.at<uint8_t>(i, j) = 255;
+			}
+		}
+	}
+
+}
 
 cv::Mat get3x3FromVector(boost::array<double, 9> vec)
 {
@@ -70,24 +86,25 @@ void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::C
 void run(Frame* f)
 {
 	cv::Mat mono;
-
+	cv::fisheye::undistortImage(f->img, f->img, f->K, f->D, f->K);
 	cv::cvtColor(f->img, mono, CV_BGR2GRAY);
 
+	cv::GaussianBlur(mono, mono, cv::Size(3, 3), 3, 3);
 	cv::Canny(mono, f->canny, CANNY_HYSTERESIS, 3 * CANNY_HYSTERESIS, 3);
-	//cv::dilate(f->canny, f->canny, cv::Mat(), cv::Point(-1, -1), 3);
-	cv::GaussianBlur(f->canny, f->canny, cv::Size(3, 3), 3, 3);
-	cv::FAST(f->canny, f->fast_corners, FAST_THRESHOLD, true);
+	cv::dilate(f->canny, f->canny, cv::Mat(), cv::Point(-1, -1), 1);
 
-
+	cv::findContours(f->canny, f->contours, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
 
 #ifdef SUPER_DEBUG
-	cv::Mat final;
-	cv::cvtColor(f->canny, final, CV_GRAY2BGR);
+	cv::Mat final = f->img;
 
-	for(auto& e : f->fast_corners)
+
+	cv::RNG rng(12345);
+	for( int i = 0; i< f->contours.size(); i++ )
 	{
-		cv::drawMarker(final, e.pt, cv::Scalar(0, 255, 255), cv::MarkerTypes::MARKER_STAR, 3);
+		cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+		cv::drawContours( final, f->contours, i, color, 2, 8, f->contour_hierarchy, 0, cv::Point() );
 	}
 
 	cv::imshow("debug", final);
@@ -102,7 +119,7 @@ void getParameters()
 
 	ros::param::param <int> ("~fast_thresh", FAST_THRESHOLD, 60);
 
-	ros::param::param <int> ("~canny_hysteresis", CANNY_HYSTERESIS, 110);
+	ros::param::param <int> ("~canny_hysteresis", CANNY_HYSTERESIS, 50);
 }
 
 int main(int argc, char **argv)
