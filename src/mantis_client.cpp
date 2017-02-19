@@ -11,7 +11,15 @@
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/video.hpp"
 
-void detectLines();
+#define SUPER_DEBUG true
+
+struct Frame;
+void run(Frame* f);
+
+int FAST_THRESHOLD;
+int CANNY_HYSTERESIS;
+int RATE;
+std::string CAMERA_0_TOPIC;
 
 struct Frame
 {
@@ -19,13 +27,11 @@ struct Frame
 	ros::Time t;
 	cv::Mat K;
 	cv::Mat D;
+	cv::Mat canny;
+	std::vector<cv::KeyPoint> fast_corners;
 };
 
 Frame frame0;
-
-int rate;
-
-std::string camera0Topic;
 
 cv::Mat get3x3FromVector(boost::array<double, 9> vec)
 {
@@ -43,46 +49,60 @@ cv::Mat get3x3FromVector(boost::array<double, 9> vec)
 
 void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
+
+	ROS_DEBUG("reading message");
 	cv::Mat temp = cv_bridge::toCvShare(img, "bgr8")->image.clone();
 
 	frame0.K = get3x3FromVector(cam->K);
 	frame0.D = cv::Mat(cam->D, false);
 
-	cv::fisheye::undistortImage(temp,temp,frame0.K,frame0.D, frame0.K);
-
 	frame0.img = temp;
 	frame0.t = img->header.stamp;
 
 
-	ROS_INFO_STREAM("intrinsic; " << frame0.K);
-	ROS_INFO_STREAM("intrinsic; " << frame0.D);
+	//ROS_INFO_STREAM("intrinsic; " << frame0.K);
+	//ROS_INFO_STREAM("distortion; " << frame0.D);
 
-	detectLines();
+	run(&frame0);
 
 }
 
-void detectLines()
+void run(Frame* f)
 {
-	cv::Mat mono, cmono;
-	cv::cvtColor(frame0.img, mono, CV_BGR2GRAY);
+	cv::Mat mono;
 
-	cv::Canny(mono, cmono, 50, 200, 3);
+	cv::cvtColor(f->img, mono, CV_BGR2GRAY);
 
-	std::vector<cv::Vec4i> Lines;
-	cv::HoughLinesP(cmono, Lines, 1, CV_PI/180, 50, 50, 10);
-	for (size_t i = 0; i < Lines.size(); i++)
+	cv::Canny(mono, f->canny, CANNY_HYSTERESIS, 3 * CANNY_HYSTERESIS, 3);
+	//cv::dilate(f->canny, f->canny, cv::Mat(), cv::Point(-1, -1), 3);
+	cv::GaussianBlur(f->canny, f->canny, cv::Size(3, 3), 3, 3);
+	cv::FAST(f->canny, f->fast_corners, FAST_THRESHOLD, true);
+
+
+
+
+#ifdef SUPER_DEBUG
+	cv::Mat final;
+	cv::cvtColor(f->canny, final, CV_GRAY2BGR);
+
+	for(auto& e : f->fast_corners)
 	{
-	    cv::Vec4i l = Lines[i];
-	    cv::line( mono, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0,0,255), 3, CV_AA);
+		cv::drawMarker(final, e.pt, cv::Scalar(0, 255, 255), cv::MarkerTypes::MARKER_STAR, 3);
 	}
-	cv::imshow("show",mono);
+
+	cv::imshow("debug", final);
 	cv::waitKey(30);
+#endif
 }
 void getParameters()
 {
-	ros::param::param <std::string> ("~camera0Topic", camera0Topic, "bottomCamera/image_color");
+	ros::param::param <std::string> ("~camera0Topic", CAMERA_0_TOPIC, "camera/image_color");
 
-	ros::param::param <int> ("~rate", rate, 10);
+	ros::param::param <int> ("~rate", RATE, 10);
+
+	ros::param::param <int> ("~fast_thresh", FAST_THRESHOLD, 60);
+
+	ros::param::param <int> ("~canny_hysteresis", CANNY_HYSTERESIS, 110);
 }
 
 int main(int argc, char **argv)
@@ -93,16 +113,19 @@ int main(int argc, char **argv)
 
 	getParameters();
 
-	ros::Rate loop_rate(rate);
+	ros::Rate loop_rate(RATE);
 
 	image_transport::ImageTransport it(n);
 
-	image_transport::CameraSubscriber cameraSub0 = it.subscribeCamera(camera0Topic, 1, cameraCallback0);
+	image_transport::CameraSubscriber cameraSub0 = it.subscribeCamera(CAMERA_0_TOPIC, 1, cameraCallback0);
 
 	while(n.ok()){
+
+		ROS_DEBUG("spinning once");
+		ros::spinOnce();
+		ROS_DEBUG("spun once");
 		loop_rate.sleep();
 
-		ros::spinOnce();
 	}
 
 	return 0;
