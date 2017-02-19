@@ -50,6 +50,7 @@ public:
 	virtual ~MonteCarlo();
 
 	tf::Transform generateRandomTransform();
+	std::vector<tf::Vector3> parseCoordinatesFromString(std::string str);
 	tf::TransformListener tfListener;
 
 private:
@@ -57,6 +58,7 @@ private:
 	float MINX, MINY, MINZ, MAXX, MAXY, MAXZ;
 
 };
+
 
 #include "error/computeError.h"
 

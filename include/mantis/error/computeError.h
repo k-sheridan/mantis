@@ -14,7 +14,7 @@ MantisRequest parseRequest(MonteCarlo* mc) {
 
 	try {
 
-		mc->tfListener.lookupTransform("bottom_camera", "base_link",
+		mc->tfListener.lookupTransform("base_link", "bottom_camera",
 				ros::Time(0), data.c1.b2c);
 	} catch (tf::TransformException& e) {
 		ROS_WARN_STREAM(e.what());
@@ -22,7 +22,7 @@ MantisRequest parseRequest(MonteCarlo* mc) {
 
 	try {
 
-		mc->tfListener.lookupTransform("front_camera", "base_link",
+		mc->tfListener.lookupTransform("base_link", "front_camera",
 				ros::Time(0), data.c2.b2c);
 	} catch (tf::TransformException& e) {
 		ROS_WARN_STREAM(e.what());
@@ -33,7 +33,17 @@ MantisRequest parseRequest(MonteCarlo* mc) {
 	return data;
 }
 
-double computeError(MantisRequest& req) {
+/*
+ * Assuming the Transform is from WORLD to BASE
+ * MULtIPLY BY BASE TO CAMERA.
+ * Assume we have world coordinate points.
+ */
+double computeError(MantisRequest& req, tf::Transform particle) {
+	tf::Transform w2c1 = particle.inverseTimes(req.c1.b2c_inv);
+	tf::Transform w2c2 = particle.inverseTimes(req.c2.b2c_inv);//When multiplied by tf vector 3 it will transform into a camera's coordinate frame
+
+
+
 	return 0;
 }
 
