@@ -23,6 +23,33 @@ int POLYGON_EPSILON;
 std::string CAMERA_0_TOPIC;
 cv::Vec3b RED_BGR, GREEN_BGR, WHITE_BGR;
 double COLOR_THRESHOLD;
+double SEARCH_RADIUS_MULTIPLIER;
+
+enum Color{
+	RED,
+	GREEN,
+	WHITE,
+	OTHER
+};
+
+struct Quadrilateral
+{
+	cv::Point2f center;
+	std::vector<cv::Point> contour;
+	double approximate_area;
+	Color color;
+
+	Quadrilateral(std::vector<cv::Point> _contour)
+	{
+		this->contour = _contour;
+		ROS_ASSERT(_contour.size() == 4);
+		ROS_DEBUG("computing delta vec");
+		cv::Point first_delta = (this->contour.at(0) - this->contour.at(1));
+		ROS_DEBUG_STREAM("delta is: " << first_delta);
+		this->approximate_area = pow(sqrt(first_delta.x*first_delta.x + first_delta.y*first_delta.y), 2);
+		ROS_DEBUG_STREAM("approximate area: " << approximate_area);
+	}
+};
 
 struct Frame
 {
@@ -32,18 +59,23 @@ struct Frame
 	cv::Mat D;
 	cv::Mat canny;
 	std::vector<std::vector<cv::Point> > contours;
-	std::vector<std::vector<cv::Point> > quads;
+	std::vector<Quadrilateral> quads;
 	std::vector<cv::Vec4i> contour_hierarchy;
 };
 
 Frame frame0;
 
-enum Color{
-	RED,
-	GREEN,
-	WHITE,
-	OTHER
-};
+cv::Point2f computeQuadCenter(std::vector<cv::Point>& contour)
+{
+	float x_sigma=0, y_sigma=0;
+	for(auto& e : contour)
+	{
+		x_sigma += e.x;
+		y_sigma += e.y;
+	}
+
+	return cv::Point2f(x_sigma / contour.size(), y_sigma / contour.size());
+}
 
 double dist2color(cv::Vec3b& test, cv::Vec3b& compare)
 {
@@ -89,7 +121,7 @@ Color getCornerColor(Frame* f, cv::Point& pos, int rad)
  */
 Color getQuadColor(Frame* f, std::vector<cv::Point> quad, int rad)
 {
-
+	return Color::WHITE;
 }
 
 void convert2Binary(cv::Mat& img){
@@ -150,9 +182,10 @@ void run(Frame* f)
 	//cv::fisheye::undistortImage(f->img, f->img, f->K, f->D, f->K);
 	cv::cvtColor(f->img, mono, CV_BGR2GRAY);
 
-	cv::GaussianBlur(mono, mono, cv::Size(5, 5), 3, 3);
+	cv::GaussianBlur(mono, mono, cv::Size(3, 3), 3, 3);
 	cv::Canny(mono, f->canny, CANNY_HYSTERESIS, 3 * CANNY_HYSTERESIS, 3);
-	cv::dilate(f->canny, f->canny, cv::Mat(), cv::Point(-1, -1), 1);
+	cv::dilate(f->canny, f->canny, cv::Mat(), cv::Point(-1, -1), 2);
+	cv::erode(f->canny, f->canny, cv::Mat(), cv::Point(-1, -1), 1);
 
 	cv::findContours(f->canny, f->contours, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
@@ -162,7 +195,17 @@ void run(Frame* f)
 		cv::approxPolyDP(f->contours.at(i),approx,POLYGON_EPSILON,true);
 		if(approx.size() == 4)
 		{
-			f->quads.push_back(approx);
+			Quadrilateral this_quad = Quadrilateral(approx);
+			this_quad.color = getQuadColor(f, this_quad.contour, round(SEARCH_RADIUS_MULTIPLIER * this_quad.approximate_area));
+			if(this_quad.color != Color::OTHER)
+			{
+				this_quad.center = computeQuadCenter(this_quad.contour);
+				f->quads.push_back(this_quad);
+			}
+			else
+			{
+				ROS_DEBUG("removed quadrilateral because its color was wrong");
+			}
 		}
 	}
 
@@ -175,7 +218,9 @@ void run(Frame* f)
 	for( int i = 0; i< f->quads.size(); i++ )
 	{
 		cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-		cv::drawContours( final, f->quads, i, color, 2, 8);
+		std::vector<std::vector<cv::Point> > cont;
+		cont.push_back(f->quads.at(i).contour);
+		cv::drawContours( final, cont, 0, color, 2, 8);
 	}
 
 	cv::imshow("debug", final);
@@ -195,6 +240,8 @@ void getParameters()
 	ros::param::param <int> ("~polygon_epsilon", POLYGON_EPSILON, 10);
 
 	ros::param::param <double> ("~color_threshold", COLOR_THRESHOLD, 5);
+
+	ros::param::param <double> ("~color_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 1);
 }
 
 int main(int argc, char **argv)
