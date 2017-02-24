@@ -13,6 +13,10 @@
 
 #define SUPER_DEBUG true
 
+#define WHITE_INIT cv::Vec3b(255, 255, 255)
+#define RED_INIT cv::Vec3b(0, 0, 255)
+#define GREEN_INIT cv::Vec3b(0, 255, 0)
+
 struct Frame;
 void run(Frame* f);
 
@@ -88,7 +92,7 @@ double dist2color(cv::Vec3b& test, cv::Vec3b& compare)
 /*
  * get the color of a pixel by searching a radius
  */
-Color getPixelColor(Frame* f, cv::Point& pos)
+Color getPixelColor(Frame* f, cv::Point pos)
 {
 	cv::Vec3b test = f->img.at<cv::Vec3b>(pos);
 
@@ -109,7 +113,41 @@ Color getPixelColor(Frame* f, cv::Point& pos)
  */
 Color getCornerColor(Frame* f, cv::Point& pos, int rad)
 {
-
+	Color theColor = Color::OTHER;
+	for(int i = pos.y - rad; i <= pos.y + rad; i++)
+	{
+		for(int j = pos.x - rad; j < pos.x + rad; j++)
+		{
+			if(theColor != Color::GREEN || theColor != Color::RED)
+			{
+				if(theColor != Color::WHITE)
+				{
+					Color thisPixel = getPixelColor(f, cv::Point(j, i));
+					if(thisPixel != Color::OTHER)
+					{
+						theColor = thisPixel;
+					}
+				}
+				else
+				{
+					Color thisPixel = getPixelColor(f, cv::Point(j, i));
+					if(thisPixel != Color::OTHER && thisPixel != Color::WHITE)
+					{
+						theColor = thisPixel;
+					}
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		if(theColor == Color::GREEN || theColor == Color::RED)
+		{
+			break;
+		}
+	}
+	return theColor;
 }
 
 /*
@@ -119,8 +157,23 @@ Color getCornerColor(Frame* f, cv::Point& pos, int rad)
  * WHITE = quad in the center of the grid
  * OTHER = outlier
  */
-Color getQuadColor(Frame* f, std::vector<cv::Point> quad, int rad)
+Color getQuadColor(Frame* f, Quadrilateral quad, int rad)
 {
+	/*Color finalColor = Color::OTHER;
+
+	for(std::vector<cv::Point>::iterator it = quad.contour.begin(); it != quad.contour.begin() + 4; it++)
+	{
+		Color thisCorner = getCornerColor(f, (*it), rad);
+		if(thisCorner == Color::OTHER)
+		{
+			return Color::OTHER; // this is an invalid corner
+		}
+		else
+		{
+
+		}
+	}*/
+
 	return Color::WHITE;
 }
 
@@ -241,7 +294,11 @@ void getParameters()
 
 	ros::param::param <double> ("~color_threshold", COLOR_THRESHOLD, 5);
 
-	ros::param::param <double> ("~color_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 1);
+	ros::param::param <double> ("~color_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 0.001);
+
+	//WHITE_BGR = WHITE_INIT;
+	//RED_BGR = RED_INIT;
+	//GREEN_BGR = GREEN_INIT;
 }
 
 int main(int argc, char **argv)
