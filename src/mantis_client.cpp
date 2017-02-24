@@ -214,6 +214,36 @@ int removeDuplicateQuads(std::vector<Quadrilateral>& quads)
 	cv::flann::KDTreeIndexParams indexParams;
 	cv::flann::Index kdtree(cv::Mat(original_pts).reshape(1), indexParams);
 
+	int neighbors = 0;
+
+	for(auto& e : quads)
+	{
+		if(!e.neighbor)
+		{
+			std::vector<float> query;
+			query.push_back(e.center.x);
+			query.push_back(e.center.y);
+
+			std::vector<int> indices;
+			std::vector<float> dists;
+
+			kdtree.radiusSearch(query, indices, dists, SEARCH_RADIUS_MULTIPLIER * e.side_length, 4);
+
+			for(std::vector<int>::iterator it = indices.begin() + 1; it != indices.end(); it++)
+			{
+				quads.at(*it).neighbor = true; // this will remove this from the list
+				neighbors++;
+			}
+		}
+	}
+
+	ROS_DEBUG_STREAM("found " << neighbors << " neighbors");
+
+	ROS_DEBUG_STREAM("size before: " << quads.size());
+	quads.erase(std::remove_if(quads.begin(), quads.end(), [](Quadrilateral x){return x.neighbor;}), quads.end());
+	ROS_DEBUG_STREAM("size after: " << quads.size());
+
+	return neighbors;
 
 }
 
@@ -277,6 +307,8 @@ void run(Frame* f)
 		}
 	}
 
+	removeDuplicateQuads(f->quads);
+
 
 #ifdef SUPER_DEBUG
 	cv::Mat final = f->img;
@@ -289,6 +321,21 @@ void run(Frame* f)
 		std::vector<std::vector<cv::Point> > cont;
 		cont.push_back(f->quads.at(i).contour);
 		cv::drawContours( final, cont, 0, color, 2, 8);
+		switch (f->quads.at(i).color) {
+			case Color::WHITE:
+				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 255, 255));
+				break;
+			case Color::GREEN:
+				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 255, 0));
+				break;
+			case Color::RED:
+				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 0, 255));
+				break;
+			default:
+				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 255, 255));
+				break;
+		}
+		cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 255, 255), cv::MarkerTypes::MARKER_STAR);
 	}
 
 	cv::imshow("debug", final);
@@ -309,7 +356,7 @@ void getParameters()
 
 	ros::param::param <double> ("~color_threshold", COLOR_THRESHOLD, 60);
 
-	ros::param::param <double> ("~neighborhood_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 0.001);
+	ros::param::param <double> ("~neighborhood_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 0.1);
 
 	//WHITE_BGR = WHITE_INIT;
 	//RED_BGR = RED_INIT;
