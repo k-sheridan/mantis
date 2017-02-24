@@ -38,20 +38,36 @@ enum Color{
 
 struct Quadrilateral
 {
-	cv::Point2f center;
-	std::vector<cv::Point> contour;
-	double approximate_area;
-	Color color;
+	cv::Point2f center; // the centroid of this quad
+	std::vector<cv::Point> contour; // the raw detected corners of this quad
+	double side_length; // the approximate area of this quad
+	Color color; // the color of this quad
+	bool neighbor; // has this quad been found to be the neighbor of another already
+
+	cv::Point2f computeQuadCenter(std::vector<cv::Point>& contour)
+	{
+		float x_sigma=0, y_sigma=0;
+		for(auto& e : contour)
+		{
+			x_sigma += e.x;
+			y_sigma += e.y;
+		}
+
+		return cv::Point2f(x_sigma / contour.size(), y_sigma / contour.size());
+	}
 
 	Quadrilateral(std::vector<cv::Point> _contour)
 	{
+		neighbor = false;
 		this->contour = _contour;
 		ROS_ASSERT(_contour.size() == 4);
-		ROS_DEBUG("computing delta vec");
+		//ROS_DEBUG("computing delta vec");
 		cv::Point first_delta = (this->contour.at(0) - this->contour.at(1));
-		ROS_DEBUG_STREAM("delta is: " << first_delta);
-		this->approximate_area = pow(sqrt(first_delta.x*first_delta.x + first_delta.y*first_delta.y), 2);
-		ROS_DEBUG_STREAM("approximate area: " << approximate_area);
+		//ROS_DEBUG_STREAM("delta is: " << first_delta);
+		this->side_length = sqrt(first_delta.x*first_delta.x + first_delta.y*first_delta.y);
+		ROS_DEBUG_STREAM("side length: " << side_length);
+		this->center = this->computeQuadCenter(_contour);
+		this->color = Color::OTHER;
 	}
 };
 
@@ -69,18 +85,6 @@ struct Frame
 
 Frame frame0;
 
-cv::Point2f computeQuadCenter(std::vector<cv::Point>& contour)
-{
-	float x_sigma=0, y_sigma=0;
-	for(auto& e : contour)
-	{
-		x_sigma += e.x;
-		y_sigma += e.y;
-	}
-
-	return cv::Point2f(x_sigma / contour.size(), y_sigma / contour.size());
-}
-
 double dist2color(cv::Vec3b& test, cv::Vec3b& compare)
 {
 	double db = test[0]-compare[0];
@@ -96,12 +100,18 @@ Color getPixelColor(Frame* f, cv::Point pos)
 {
 	cv::Vec3b test = f->img.at<cv::Vec3b>(pos);
 
-	if(dist2color(test, WHITE_BGR) < COLOR_THRESHOLD)
+	if(dist2color(test, WHITE_BGR) < COLOR_THRESHOLD){
+		ROS_DEBUG("found_white");
 		return Color::WHITE;
-	else if(dist2color(test, GREEN_BGR) < COLOR_THRESHOLD)
+	}
+	else if(dist2color(test, GREEN_BGR) < COLOR_THRESHOLD){
+		ROS_DEBUG("found_green");
 		return Color::GREEN;
-	else if(dist2color(test, RED_BGR) < COLOR_THRESHOLD)
+	}
+	else if(dist2color(test, RED_BGR) < COLOR_THRESHOLD){
+		ROS_DEBUG("found_red");
 		return Color::RED;
+	}
 	else
 	{
 		return Color::OTHER;
@@ -159,7 +169,7 @@ Color getCornerColor(Frame* f, cv::Point& pos, int rad)
  */
 Color getQuadColor(Frame* f, Quadrilateral quad, int rad)
 {
-	/*Color finalColor = Color::OTHER;
+	Color finalColor = Color::OTHER;
 
 	for(std::vector<cv::Point>::iterator it = quad.contour.begin(); it != quad.contour.begin() + 4; it++)
 	{
@@ -172,9 +182,9 @@ Color getQuadColor(Frame* f, Quadrilateral quad, int rad)
 		{
 
 		}
-	}*/
+	}
 
-	return Color::WHITE;
+	return finalColor;
 }
 
 void convert2Binary(cv::Mat& img){
@@ -189,6 +199,21 @@ void convert2Binary(cv::Mat& img){
 			}
 		}
 	}
+
+}
+
+int removeDuplicateQuads(std::vector<Quadrilateral>& quads)
+{
+	std::vector<Quadrilateral> keepers;
+	std::vector<cv::Point2f> original_pts;
+	for(auto& e : quads)
+	{
+		original_pts.push_back(e.center);
+	}
+
+	cv::flann::KDTreeIndexParams indexParams;
+	cv::flann::Index kdtree(cv::Mat(original_pts).reshape(1), indexParams);
+
 
 }
 
@@ -248,17 +273,7 @@ void run(Frame* f)
 		cv::approxPolyDP(f->contours.at(i),approx,POLYGON_EPSILON,true);
 		if(approx.size() == 4)
 		{
-			Quadrilateral this_quad = Quadrilateral(approx);
-			this_quad.color = getQuadColor(f, this_quad.contour, round(SEARCH_RADIUS_MULTIPLIER * this_quad.approximate_area));
-			if(this_quad.color != Color::OTHER)
-			{
-				this_quad.center = computeQuadCenter(this_quad.contour);
-				f->quads.push_back(this_quad);
-			}
-			else
-			{
-				ROS_DEBUG("removed quadrilateral because its color was wrong");
-			}
+			f->quads.push_back(Quadrilateral(approx));
 		}
 	}
 
@@ -292,9 +307,9 @@ void getParameters()
 
 	ros::param::param <int> ("~polygon_epsilon", POLYGON_EPSILON, 10);
 
-	ros::param::param <double> ("~color_threshold", COLOR_THRESHOLD, 5);
+	ros::param::param <double> ("~color_threshold", COLOR_THRESHOLD, 60);
 
-	ros::param::param <double> ("~color_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 0.001);
+	ros::param::param <double> ("~neighborhood_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 0.001);
 
 	//WHITE_BGR = WHITE_INIT;
 	//RED_BGR = RED_INIT;
