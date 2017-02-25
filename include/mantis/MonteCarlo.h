@@ -53,6 +53,11 @@ public:
 	std::vector<tf::Vector3> parseCoordinatesFromString(std::string str);
 	tf::TransformListener tfListener;
 
+	std::vector<tf::Vector3> white_map;
+	std::vector<tf::Vector3> red_map;
+	std::vector<tf::Vector3> green_map;
+
+
 private:
 	cv::RNG rng;
 	float MINX, MINY, MINZ, MAXX, MAXY, MAXZ;

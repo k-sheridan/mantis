@@ -16,6 +16,15 @@ MonteCarlo::MonteCarlo() {
 	ros::param::param<float>("~maxx", MAXX, DEFAULT_MAXX);
 	ros::param::param<float>("~maxy", MAXY, DEFAULT_MAXY);
 	ros::param::param<float>("~maxz", MAXZ, DEFAULT_MAXZ);
+
+	std::string temp;
+	ros::param::param<std::string>("~whiteMap", temp, "");
+	ROS_INFO_STREAM(temp);
+
+	this->white_map = this->parseCoordinatesFromString(temp);
+
+	ROS_INFO_STREAM("size of white map "<< this->white_map.size());
+
 }
 
 tf::Transform MonteCarlo::generateRandomTransform()

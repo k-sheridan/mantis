@@ -35,7 +35,7 @@ MantisRequest parseRequest(MonteCarlo* mc) {
 
 /*
  * Assuming the Transform is from WORLD to BASE
- * MULtIPLY BY BASE TO CAMERA.
+ * MULTIPLY BY BASE TO CAMERA.
  * Assume we have world coordinate points.
  */
 double computeError(MantisRequest& req, tf::Transform particle) {
