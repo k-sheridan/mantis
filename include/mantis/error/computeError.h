@@ -43,7 +43,6 @@ double computeError(MantisRequest& req, tf::Transform particle) {
 	tf::Transform w2c2 = particle.inverseTimes(req.c2.b2c_inv);//When multiplied by tf vector 3 it will transform into a camera's coordinate frame
 
 
-
 	return 0;
 }
 

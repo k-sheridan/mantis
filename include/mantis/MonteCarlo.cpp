@@ -17,13 +17,24 @@ MonteCarlo::MonteCarlo() {
 	ros::param::param<float>("~maxy", MAXY, DEFAULT_MAXY);
 	ros::param::param<float>("~maxz", MAXZ, DEFAULT_MAXZ);
 
-	std::string temp;
-	ros::param::param<std::string>("~whiteMap", temp, "");
-	ROS_INFO_STREAM(temp);
-
-	this->white_map = this->parseCoordinatesFromString(temp);
-
+	std::string whiteTemp;
+	ros::param::param<std::string>("~whiteMap", whiteTemp, "");
+	ROS_INFO_STREAM(whiteTemp);
+	this->white_map = this->parseCoordinatesFromString(whiteTemp);
 	ROS_INFO_STREAM("size of white map "<< this->white_map.size());
+
+	std::string redTemp;
+	ros::param::param<std::string>("~redMap", redTemp, "");
+	ROS_INFO_STREAM(redTemp);
+	this->red_map = this->parseCoordinatesFromString(redTemp);
+	ROS_INFO_STREAM("size of red map"<< this->red_map.size());
+
+
+	std::string greenTemp;
+	ros::param::param<std::string>("~greenMap", greenTemp, "");
+	ROS_INFO_STREAM(greenTemp);
+	this->green_map = this->parseCoordinatesFromString(greenTemp);
+	ROS_INFO_STREAM("size of greenMap"<< this->green_map.size());
 
 }
 
