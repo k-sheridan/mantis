@@ -36,6 +36,12 @@ MonteCarlo::MonteCarlo() {
 	this->green_map = this->parseCoordinatesFromString(greenTemp);
 	ROS_INFO_STREAM("size of greenMap"<< this->green_map.size());
 
+	ros::param::param<double>("~projected_min_u", MIN_PROJECTED_U, DEFAULT_PROJECTED_MIN_PROJECTED_U);
+	ros::param::param<double>("~projected_min_v", MIN_PROJECTED_V, DEFAULT_PROJECTED_MIN_PROJECTED_V);
+	ros::param::param<double>("~projected_max_u", MAX_PROJECTED_U, DEFAULT_PROJECTED_MAX_PROJECTED_U);
+	ros::param::param<double>("~projected_max_v", MAX_PROJECTED_V, DEFAULT_PROJECTED_MIN_PROJECTED_V);
+	ros::param::param<double>("~radius inverse multiplier", RADIUS_INVERSE_MULTIPLIER, DEFAULT_RADIUS_INVERSE_MULTIPLIER);
+	ros::param::param<double>("~weight bias", WEIGHT_BIAS, DEFAULT_WEIGHT_BIAS);
 }
 
 tf::Transform MonteCarlo::generateRandomTransform()

@@ -40,6 +40,12 @@
 #define DEFAULT_MAXX   10
 #define DEFAULT_MAXY   10
 #define DEFAULT_MAXZ    5
+#define DEFAULT_PROJECTED_MIN_PROJECTED_U  -2
+#define DEFAULT_PROJECTED_MIN_PROJECTED_V  -2
+#define DEFAULT_PROJECTED_MAX_PROJECTED_U  2
+#define DEFAULT_PROJECTED_MAX_PROJECTED_V  2
+#define DEFAULT_RADIUS_INVERSE_MULTIPLIER 1
+#define DEFAULT_WEIGHT_BIAS .5
 
 
 class MonteCarlo {
@@ -57,11 +63,11 @@ public:
 	std::vector<tf::Vector3> red_map;
 	std::vector<tf::Vector3> green_map;
 
-
-private:
 	cv::RNG rng;
 	float MINX, MINY, MINZ, MAXX, MAXY, MAXZ;
-
+	double MIN_PROJECTED_U, MIN_PROJECTED_V, MAX_PROJECTED_U, MAX_PROJECTED_V;
+	double RADIUS_INVERSE_MULTIPLIER;
+	double WEIGHT_BIAS;
 };
 
 
