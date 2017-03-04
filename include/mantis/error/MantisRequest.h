@@ -22,6 +22,10 @@ struct MantisRequest {
 
 	cam c1;
 	cam c2;
+
+	std::vector<tf::Vector3> white_map;
+	std::vector<tf::Vector3> red_map;
+	std::vector<tf::Vector3> green_map;
 };
 
 
