@@ -30,7 +30,7 @@ include_directories(
 # add the service files
 add_service_files(
 	FILES
-	mantis.srv
+	mantisService.srv
 )
 
 generate_messages(

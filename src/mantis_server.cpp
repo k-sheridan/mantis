@@ -11,11 +11,23 @@
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/video.hpp"
 
+#include <mantis/mantisService.h>
+
+/*
+ * run the particle filter
+ */
+bool runMantis(mantis::mantisService::Request& req, mantis::mantisService::Response& res)
+{
+	return true;
+}
+
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "talker");
 
-	ros::NodeHandle n;
+	ros::NodeHandle nh;
+
+	ros::ServiceServer server = nh.advertiseService("mantis_service", runMantis);
 
 	return 0;
 }
