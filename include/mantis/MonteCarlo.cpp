@@ -17,14 +17,31 @@ MonteCarlo::MonteCarlo() {
 	ros::param::param<float>("~maxy", MAXY, DEFAULT_MAXY);
 	ros::param::param<float>("~maxz", MAXZ, DEFAULT_MAXZ);
 
-	std::string temp;
-	ros::param::param<std::string>("~whiteMap", temp, "");
-	ROS_INFO_STREAM(temp);
-
-	this->white_map = this->parseCoordinatesFromString(temp);
-
+	std::string whiteTemp;
+	ros::param::param<std::string>("~whiteMap", whiteTemp, "");
+	ROS_INFO_STREAM(whiteTemp);
+	this->white_map = this->parseCoordinatesFromString(whiteTemp);
 	ROS_INFO_STREAM("size of white map "<< this->white_map.size());
 
+	std::string redTemp;
+	ros::param::param<std::string>("~redMap", redTemp, "");
+	ROS_INFO_STREAM(redTemp);
+	this->red_map = this->parseCoordinatesFromString(redTemp);
+	ROS_INFO_STREAM("size of red map"<< this->red_map.size());
+
+
+	std::string greenTemp;
+	ros::param::param<std::string>("~greenMap", greenTemp, "");
+	ROS_INFO_STREAM(greenTemp);
+	this->green_map = this->parseCoordinatesFromString(greenTemp);
+	ROS_INFO_STREAM("size of greenMap"<< this->green_map.size());
+
+	ros::param::param<double>("~projected_min_u", MIN_PROJECTED_U, DEFAULT_PROJECTED_MIN_PROJECTED_U);
+	ros::param::param<double>("~projected_min_v", MIN_PROJECTED_V, DEFAULT_PROJECTED_MIN_PROJECTED_V);
+	ros::param::param<double>("~projected_max_u", MAX_PROJECTED_U, DEFAULT_PROJECTED_MAX_PROJECTED_U);
+	ros::param::param<double>("~projected_max_v", MAX_PROJECTED_V, DEFAULT_PROJECTED_MIN_PROJECTED_V);
+	ros::param::param<double>("~radius inverse multiplier", RADIUS_INVERSE_MULTIPLIER, DEFAULT_RADIUS_INVERSE_MULTIPLIER);
+	ros::param::param<double>("~weight bias", WEIGHT_BIAS, DEFAULT_WEIGHT_BIAS);
 }
 
 tf::Transform MonteCarlo::generateRandomTransform()
