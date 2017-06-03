@@ -13,6 +13,8 @@
 
 #define SUPER_DEBUG true
 
+#define QUAD_STRECH_FACTOR 1.3
+
 #define WHITE_INIT cv::Vec3b(255, 255, 255)
 #define RED_INIT cv::Vec3b(0, 0, 255)
 #define GREEN_INIT cv::Vec3b(0, 255, 0)
@@ -40,6 +42,7 @@ struct Quadrilateral
 {
 	cv::Point2f center; // the centroid of this quad
 	std::vector<cv::Point> contour; // the raw detected corners of this quad
+	std::vector<cv::Point> test_points; // test points of the quad for color
 	double side_length; // the approximate area of this quad
 	Color color; // the color of this quad
 	bool neighbor; // has this quad been found to be the neighbor of another already
@@ -56,6 +59,17 @@ struct Quadrilateral
 		return cv::Point2f(x_sigma / contour.size(), y_sigma / contour.size());
 	}
 
+	std::vector<cv::Point> computeTestPoints()
+	{
+		std::vector<cv::Point> test;
+		for(auto e : contour)
+		{
+			cv::Point pt = cv::Point((cv::Point2f(e) - center) * QUAD_STRECH_FACTOR + center);
+			test.push_back(pt);
+		}
+		return test;
+	}
+
 	Quadrilateral(std::vector<cv::Point> _contour)
 	{
 		neighbor = false;
@@ -68,6 +82,9 @@ struct Quadrilateral
 		ROS_DEBUG_STREAM("side length: " << side_length);
 		this->center = this->computeQuadCenter(_contour);
 		this->color = Color::OTHER;
+
+		//test points
+		test_points = computeTestPoints();
 	}
 };
 
@@ -85,78 +102,17 @@ struct Frame
 
 Frame frame0;
 
-double dist2color(cv::Vec3b& test, cv::Vec3b& compare)
-{
-	double db = test[0]-compare[0];
-	double dg = test[1]-compare[1];
-	double dr = test[2]-compare[2];
-	return sqrt(db*db+dg*dg+dr*dr);
-}
-
-/*
- * get the color of a pixel by searching a radius
- */
-Color getPixelColor(Frame* f, cv::Point pos)
-{
-	cv::Vec3b test = f->img.at<cv::Vec3b>(pos);
-
-	if(dist2color(test, WHITE_BGR) < COLOR_THRESHOLD){
-		ROS_DEBUG("found_white");
-		return Color::WHITE;
-	}
-	else if(dist2color(test, GREEN_BGR) < COLOR_THRESHOLD){
-		ROS_DEBUG("found_green");
-		return Color::GREEN;
-	}
-	else if(dist2color(test, RED_BGR) < COLOR_THRESHOLD){
-		ROS_DEBUG("found_red");
-		return Color::RED;
-	}
-	else
-	{
-		return Color::OTHER;
-	}
-}
-
 /*
  * get the color of a pixel by searching around it for colors in the THRESH
  */
-Color getCornerColor(Frame* f, cv::Point& pos, int rad)
+Color getCornerColor(Frame* f, cv::Point& pos)
 {
 	Color theColor = Color::OTHER;
-	for(int i = pos.y - rad; i <= pos.y + rad; i++)
-	{
-		for(int j = pos.x - rad; j < pos.x + rad; j++)
-		{
-			if(theColor != Color::GREEN || theColor != Color::RED)
-			{
-				if(theColor != Color::WHITE)
-				{
-					Color thisPixel = getPixelColor(f, cv::Point(j, i));
-					if(thisPixel != Color::OTHER)
-					{
-						theColor = thisPixel;
-					}
-				}
-				else
-				{
-					Color thisPixel = getPixelColor(f, cv::Point(j, i));
-					if(thisPixel != Color::OTHER && thisPixel != Color::WHITE)
-					{
-						theColor = thisPixel;
-					}
-				}
-			}
-			else
-			{
-				break;
-			}
-		}
-		if(theColor == Color::GREEN || theColor == Color::RED)
-		{
-			break;
-		}
-	}
+
+	// get the search region
+	cv::Rect roi(pos.x, pos.y, 1 , 1);
+	cv::Mat searchMat = f->img(roi);
+
 	return theColor;
 }
 
@@ -167,20 +123,21 @@ Color getCornerColor(Frame* f, cv::Point& pos, int rad)
  * WHITE = quad in the center of the grid
  * OTHER = outlier
  */
-Color getQuadColor(Frame* f, Quadrilateral quad, int rad)
+Color getQuadColor(Frame* f, Quadrilateral quad)
 {
-	Color finalColor = Color::OTHER;
+	Color finalColor = Color::WHITE;
 
 	for(std::vector<cv::Point>::iterator it = quad.contour.begin(); it != quad.contour.begin() + 4; it++)
 	{
-		Color thisCorner = getCornerColor(f, (*it), rad);
+		//cv::Point test = (cv::Point2f((*it)) - quad.center) * QUAD_STRECH_FACTOR + quad.center;
+		Color thisCorner = getCornerColor(f, (*it));
 		if(thisCorner == Color::OTHER)
 		{
 			return Color::OTHER; // this is an invalid corner
 		}
-		else
+		else if(thisCorner == Color::GREEN || thisCorner == Color::RED)
 		{
-
+			return thisCorner;
 		}
 	}
 
@@ -304,6 +261,7 @@ void run(Frame* f)
 		if(approx.size() == 4)
 		{
 			f->quads.push_back(Quadrilateral(approx));
+			f->quads.back().color = getQuadColor(f, f->quads.back());
 		}
 	}
 
@@ -323,19 +281,28 @@ void run(Frame* f)
 		cv::drawContours( final, cont, 0, color, 2, 8);
 		switch (f->quads.at(i).color) {
 			case Color::WHITE:
+				ROS_DEBUG_STREAM("drawing white marker");
 				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 255, 255));
 				break;
 			case Color::GREEN:
+				ROS_DEBUG_STREAM("drawing green marker");
 				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 255, 0));
 				break;
 			case Color::RED:
+				ROS_DEBUG_STREAM("drawing red marker");
 				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 0, 255));
 				break;
 			default:
-				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 255, 255));
+				ROS_DEBUG_STREAM("drawing other marker");
+				cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 0, 255));
 				break;
 		}
 		cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 255, 255), cv::MarkerTypes::MARKER_STAR);
+
+		for(auto e : f->quads.at(i).test_points)
+		{
+			cv::drawMarker(final, e, cv::Scalar(255, 0, 255));
+		}
 	}
 
 	cv::imshow("debug", final);
