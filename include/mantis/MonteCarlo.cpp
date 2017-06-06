@@ -19,34 +19,44 @@ MonteCarlo::MonteCarlo() {
 
 	std::string whiteTemp;
 	ros::param::param<std::string>("~whiteMap", whiteTemp, "");
-	ROS_INFO_STREAM(whiteTemp);
+	ROS_DEBUG_STREAM(whiteTemp);
 	this->white_map = this->parseCoordinatesFromString(whiteTemp);
-	ROS_INFO_STREAM("size of white map "<< this->white_map.size());
+	ROS_DEBUG_STREAM("size of white map "<< this->white_map.size());
 
 	std::string redTemp;
 	ros::param::param<std::string>("~redMap", redTemp, "");
-	ROS_INFO_STREAM(redTemp);
+	ROS_DEBUG_STREAM(redTemp);
 	this->red_map = this->parseCoordinatesFromString(redTemp);
-	ROS_INFO_STREAM("size of red map"<< this->red_map.size());
+	ROS_DEBUG_STREAM("size of red map"<< this->red_map.size());
 
 
 	std::string greenTemp;
 	ros::param::param<std::string>("~greenMap", greenTemp, "");
-	ROS_INFO_STREAM(greenTemp);
+	ROS_DEBUG_STREAM(greenTemp);
 	this->green_map = this->parseCoordinatesFromString(greenTemp);
-	ROS_INFO_STREAM("size of greenMap"<< this->green_map.size());
+	ROS_DEBUG_STREAM("size of greenMap"<< this->green_map.size());
 
 	ros::param::param<double>("~projected_min_u", MIN_PROJECTED_U, DEFAULT_PROJECTED_MIN_PROJECTED_U);
 	ros::param::param<double>("~projected_min_v", MIN_PROJECTED_V, DEFAULT_PROJECTED_MIN_PROJECTED_V);
 	ros::param::param<double>("~projected_max_u", MAX_PROJECTED_U, DEFAULT_PROJECTED_MAX_PROJECTED_U);
 	ros::param::param<double>("~projected_max_v", MAX_PROJECTED_V, DEFAULT_PROJECTED_MIN_PROJECTED_V);
-	ros::param::param<double>("~radius inverse multiplier", RADIUS_INVERSE_MULTIPLIER, DEFAULT_RADIUS_INVERSE_MULTIPLIER);
-	ros::param::param<double>("~weight bias", WEIGHT_BIAS, DEFAULT_WEIGHT_BIAS);
+	ros::param::param<double>("~weight_bias", WEIGHT_BIAS, DEFAULT_WEIGHT_BIAS);
+}
+
+Particle MonteCarlo::runFilter(mantis::mantisServiceRequest req)
+{
+	this->mantis_req = parseRequest(this, req); // parse the request into a usable format
 }
 
 tf::Transform MonteCarlo::generateRandomTransform()
 {
-	tf::Quaternion q = tf::Quaternion(this->rng.uniform(0.0, 1.0),   this->rng.uniform(0.0,1.0),	 this->rng.uniform(0.0, 1.0) ,	this->rng.uniform(0.0, 1.0));
+	double u1 = this->rng.uniform(0.0, 1.0);
+	double u2 = this->rng.uniform(0.0, 1.0);
+	double u3 = this->rng.uniform(0.0, 1.0);
+
+	tf::Quaternion q = tf::Quaternion(sqrt(1-u1)*sin(2*CV_PI*u2),   sqrt(1-u1)*cos(2*CV_PI*u2),	 sqrt(u1)*sin(2*CV_PI*u3) ,	sqrt(u1)*cos(2*CV_PI*u3));
+
+
 	tf::Vector3 t = tf::Vector3(this->rng.uniform(MINX, MAXX), this->rng.uniform(MINY,MAXY), this->rng.uniform(MINZ,MAXZ));
 	return(tf::Transform(q,t));
 }
@@ -72,7 +82,10 @@ std::vector<tf::Vector3> MonteCarlo::parseCoordinatesFromString(std::string str)
 		for(int hold = 0; hold < 3; hold += 1) {
 			std::getline(rowStream, rowTemp, ',');
 			transfer[hold] = std::atof(rowTemp.data());
+			//ROS_DEBUG_STREAM("num: " << transfer[hold]);
 		}
 		fin.push_back(transfer);
 	}
+
+	return fin;
 }

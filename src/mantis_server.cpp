@@ -13,12 +13,16 @@
 
 #include <mantis/mantisService.h>
 
+#include <mantis/MonteCarlo.h>
+
+MonteCarlo* mc;
+
 /*
  * run the particle filter
  */
 bool runMantis(mantis::mantisService::Request& req, mantis::mantisService::Response& res)
 {
-	ROS_INFO("got request");
+	ROS_DEBUG("got request");
 	return true;
 }
 
@@ -30,7 +34,11 @@ int main(int argc, char **argv)
 
 	ros::ServiceServer server = nh.advertiseService("mantis_service", runMantis);
 
+	mc = new MonteCarlo();
+
 	ros::spin();
+
+	delete mc; // clean up
 
 	return 0;
 }

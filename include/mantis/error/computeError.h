@@ -8,13 +8,30 @@
 #ifndef MANTIS_INCLUDE_MANTIS_ERROR_COMPUTEERROR_H_
 #define MANTIS_INCLUDE_MANTIS_ERROR_COMPUTEERROR_H_
 
+#include "mantis/MantisTypes.h"
 
-MantisRequest parseRequest(MonteCarlo* mc) {
+#include <mantis/mantisService.h>
+
+cv::Mat get3x3FromVector(boost::array<double, 9> vec)
+{
+	cv::Mat mat = cv::Mat(3, 3, CV_32F);
+	for(int i = 0; i < 3; i++)
+	{
+		mat.at<float>(i, 0) = vec.at(3 * i + 0);
+		mat.at<float>(i, 1) = vec.at(3 * i + 1);
+		mat.at<float>(i, 2) = vec.at(3 * i + 2);
+	}
+
+	ROS_DEBUG_STREAM_ONCE("K = " << mat);
+	return mat;
+}
+
+MantisRequest parseRequest(MonteCarlo* mc, mantis::mantisServiceRequest req) {
 	MantisRequest data;
 
 	try {
 
-		mc->tfListener.lookupTransform("base_link", "bottom_camera",
+		mc->tfListener.lookupTransform("base_link", req.image.at(0).header.frame_id,
 				ros::Time(0), data.c1.b2c);
 	} catch (tf::TransformException& e) {
 		ROS_WARN_STREAM(e.what());
@@ -40,35 +57,7 @@ double computeCameraWeight(MonteCarlo* mc, MantisRequest& req, MantisRequest::ca
 	double sumOfDistances = 0;
 	for(auto e : req.white_map)
 	{
-		tf::Vector3 projected = w2c * e;
 
-		if(projected.z() > 0) {
-
-			double u = projected.x() / projected.z();
-			double v = projected.y() / projected.z();
-
-			if((u < mc->MAXX) && (u > mc->MINX) && (v < mc->MAXY) && (v > mc->MINY)) {
-
-				projectedPoints += 1;
-
-				std::vector<float> query;
-
-				query.push_back(u);
-				query.push_back(v);
-
-				std::vector<int> indices;
-				std::vector<double> distances;
-
-				double thresh = mc->RADIUS_INVERSE_MULTIPLIER * (1 / projected.z());
-
-				cam.kdtree_w.radiusSearch(query, indices, distances, thresh, 1);
-
-				if(distances.size() != 0) {
-					sumOfDistances += distances.front() / thresh;
-					pointsWithinThreshold += 1;
-				}
-			}
-		}
 	}
 
 	return mc->WEIGHT_BIAS * ((double)pointsWithinThreshold / projectedPoints) + (1.0 - mc->WEIGHT_BIAS) * (1 / ((sumOfDistances/pointsWithinThreshold) + 1));
@@ -79,7 +68,7 @@ double computeCameraWeight(MonteCarlo* mc, MantisRequest& req, MantisRequest::ca
  * MULTIPLY BY BASE TO CAMERA.
  * Assume we have world coordinate points.
  */
-double computeError(MonteCarlo* mc, MantisRequest& req, tf::Transform& particle) {
+double computeError(MonteCarlo* mc, MantisRequest& req, Particle& particle) {
 	tf::Transform w2c1 = particle.inverseTimes(req.c1.b2c_inv);
 	tf::Transform w2c2 = particle.inverseTimes(req.c2.b2c_inv);//When multiplied by tf vector 3 it will transform into a camera's coordinate frame
 	return 0;

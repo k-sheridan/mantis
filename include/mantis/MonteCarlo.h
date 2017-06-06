@@ -32,7 +32,10 @@
 #include <tf/tf.h>
 #include <tf/tfMessage.h>
 
+#include "MantisTypes.h"
+
 #include "error/MantisRequest.h"
+#include "error/computeError.h"
 
 #define DEFAULT_MINX  -10
 #define DEFAULT_MINY  -10
@@ -44,19 +47,26 @@
 #define DEFAULT_PROJECTED_MIN_PROJECTED_V  -2
 #define DEFAULT_PROJECTED_MAX_PROJECTED_U  2
 #define DEFAULT_PROJECTED_MAX_PROJECTED_V  2
-#define DEFAULT_RADIUS_INVERSE_MULTIPLIER 1
 #define DEFAULT_WEIGHT_BIAS .5
 
 
 class MonteCarlo {
 public:
-	MantisRequest req;
+	MantisRequest mantis_req;
+	std::vector<Particle> particles;
+
+	Particle current_best;
 
 	MonteCarlo();
-	virtual ~MonteCarlo();
+	virtual ~MonteCarlo(){
+
+	}
 
 	tf::Transform generateRandomTransform();
 	std::vector<tf::Vector3> parseCoordinatesFromString(std::string str);
+
+	Particle runFilter(mantis::mantisServiceRequest req);
+
 	tf::TransformListener tfListener;
 
 	std::vector<tf::Vector3> white_map;
