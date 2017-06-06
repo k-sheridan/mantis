@@ -11,6 +11,10 @@
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/video.hpp"
 
+#include <mantis/mantisService.h>
+
+#include <eigen3/Eigen/Eigen>
+
 #define SUPER_DEBUG true
 
 #define QUAD_STRECH_FACTOR 1.31
@@ -32,7 +36,7 @@
 #define GREEN_MAX cv::Scalar(140, 100, 100)
 
 struct Frame;
-void run(Frame* f);
+cv::Mat run(Frame* f);
 
 int FAST_THRESHOLD;
 int CANNY_HYSTERESIS;
@@ -42,6 +46,8 @@ std::string CAMERA_0_TOPIC;
 //cv::Vec3b RED_BGR, GREEN_BGR, WHITE_BGR;
 double COLOR_THRESHOLD;
 double SEARCH_RADIUS_MULTIPLIER;
+
+ros::ServiceClient particle_filter_service;
 
 #ifdef SUPER_DEBUG
 cv::Mat final;
@@ -54,6 +60,11 @@ enum Color{
 	WHITE,
 	OTHER
 };*/
+
+struct StateEstimate{
+	Eigen::Vector3d pos;
+	Eigen::Quaterniond quat;
+};
 
 struct Measurement{
 	cv::Point pos;
@@ -120,16 +131,15 @@ struct Quadrilateral
 struct Frame
 {
 	cv::Mat img;
-	ros::Time t;
-	cv::Mat K;
-	cv::Mat D;
+	sensor_msgs::Image img_msg;
+	sensor_msgs::CameraInfo cam_info_msg;
 	cv::Mat canny;
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<Quadrilateral> quads;
 	std::vector<cv::Vec4i> contour_hierarchy;
 };
 
-Frame frame0;
+Frame frame1;
 
 bool checkPixel(cv::Mat sample, cv::Scalar min, cv::Scalar max)
 {
@@ -242,28 +252,61 @@ cv::Mat get3x3FromVector(boost::array<double, 9> vec)
 	return mat;
 }
 
+StateEstimate runParticleFilter(cv::Mat measurement)
+{
+	mantis::mantisService srv;
+
+	srv.request.camera_info.push_back(frame1.cam_info_msg);
+	cv_bridge::CvImage cv_image = cv_bridge::CvImage(frame1.img_msg.header, frame1.img_msg.encoding, measurement);
+	srv.request.image.push_back(*cv_image.toImageMsg());
+
+	particle_filter_service.waitForExistence();
+
+	if(particle_filter_service.call(srv))
+	{
+		ROS_DEBUG_STREAM("response: " << srv.response);
+	}
+	else
+	{
+		ROS_ERROR("failed to call the particle filter service");
+	}
+
+	StateEstimate est;
+
+	est.pos.x() = srv.response.pose.position.x;
+	est.pos.y() = srv.response.pose.position.y;
+	est.pos.z() = srv.response.pose.position.z;
+
+	est.quat.x() = srv.response.pose.orientation.x;
+	est.quat.y() = srv.response.pose.orientation.y;
+	est.quat.z() = srv.response.pose.orientation.z;
+	est.quat.w() = srv.response.pose.orientation.w;
+
+	return est;
+}
+
 void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
 
-	//ROS_DEBUG("reading message");
+	ROS_INFO("reading message");
 	cv::Mat temp = cv_bridge::toCvShare(img, "bgr8")->image.clone();
 
-
-	frame0.K = get3x3FromVector(cam->K);
-	frame0.D = cv::Mat(cam->D, false);
-
-	frame0.img = temp;
-	frame0.t = img->header.stamp;
+	//frame1.K = get3x3FromVector(cam->K);
+	//frame1.D = cv::Mat(cam->D, false);
+	frame1.cam_info_msg = *cam;
+	frame1.img_msg = *img;
+	frame1.img = temp;
 
 
 	//ROS_INFO_STREAM("intrinsic; " << frame0.K);
 	//ROS_INFO_STREAM("distortion; " << frame0.D);
 
-	run(&frame0);
+	cv::Mat measurement1 = run(&frame1);
 
+	StateEstimate est = runParticleFilter(measurement1);
 }
 
-void run(Frame* f)
+cv::Mat run(Frame* f)
 {
 	f->quads.clear();
 
@@ -298,7 +341,7 @@ void run(Frame* f)
 	cv::GaussianBlur(measurement, measurement, cv::Size(0, 0), 5, 5);
 
 	//cv::fisheye::undistortImage(measurement, measurement, f->K, f->D, cv::Mat::eye(3, 3, CV_32F));
-	cv::fisheye::undistortImage(measurement, measurement, f->K, f->D, f->K);
+	//cv::fisheye::undistortImage(measurement, measurement, f->K, f->D, f->K);
 
 
 #ifdef SUPER_DEBUG
@@ -354,6 +397,8 @@ void run(Frame* f)
 	cv::imshow("debug", final);
 	cv::waitKey(30);
 #endif
+
+	return measurement;
 }
 void getParameters()
 {
@@ -389,6 +434,12 @@ int main(int argc, char **argv)
 	image_transport::ImageTransport it(n);
 
 	image_transport::CameraSubscriber cameraSub0 = it.subscribeCamera(CAMERA_0_TOPIC, 1, cameraCallback0);
+
+	ROS_DEBUG("creating service");
+
+	particle_filter_service = n.serviceClient<mantis::mantisService>("mantis_service"); // create a client
+
+	ROS_DEBUG("created services");
 
 	while(n.ok()){
 

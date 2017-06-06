@@ -1,6 +1,6 @@
-width = 9
+width = 10
 
-height = 9
+height = 10
 
 spacing = .32
 

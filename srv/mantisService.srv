@@ -1,15 +1,12 @@
-Header header
 
-std_msgs/Float32MultiArray white1
-std_msgs/Float32MultiArray red1
-std_msgs/Float32MultiArray green1
+sensor_msgs/Image[] image 
+sensor_msgs/CameraInfo[] camera_info
 
-std_msgs/Float32MultiArray white2
-std_msgs/Float32MultiArray red2
-std_msgs/Float32MultiArray green2
-
+# this is the update for each of the particles
+# this is applied to each particle before reevaluating
+geometry_msgs/Twist twist
 ---
 
 geometry_msgs/Pose pose
-std_msgs/Float64 weight
-std_msgs/Int32 num_particles 
+float64 weight
+int32 num_particles 

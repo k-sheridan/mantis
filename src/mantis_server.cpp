@@ -18,6 +18,7 @@
  */
 bool runMantis(mantis::mantisService::Request& req, mantis::mantisService::Response& res)
 {
+	ROS_INFO("got request");
 	return true;
 }
 
@@ -28,6 +29,8 @@ int main(int argc, char **argv)
 	ros::NodeHandle nh;
 
 	ros::ServiceServer server = nh.advertiseService("mantis_service", runMantis);
+
+	ros::spin();
 
 	return 0;
 }

@@ -19,11 +19,14 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV REQUIRED)
 
+find_package(Eigen3 REQUIRED)
+
 include_directories(
 	${OpenCV_INCLUDE_DIRS}
 	include
 	include/mantis
 	${catkin_INCLUDE_DIRS}
+	${Eigen_INCLUDE_DIRS}
 )
 
 
@@ -37,6 +40,7 @@ generate_messages(
 	DEPENDENCIES
 	std_msgs
 	geometry_msgs
+	sensor_msgs
 )
 
 catkin_package(
@@ -54,8 +58,8 @@ add_executable(mantis_client src/mantis_client.cpp)
 add_executable(mantis_server src/mantis_server.cpp)
 
 target_link_libraries(montecarlo ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(mantis_client ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(mantis_server ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} montecarlo)
+target_link_libraries(mantis_client ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
+target_link_libraries(mantis_server ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} montecarlo)
 
 add_dependencies(mantis_client ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(mantis_server ${PROJECT_NAME}_generate_messages_cpp)
