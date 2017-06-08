@@ -26,6 +26,7 @@ include_directories(
 	include
 	include/mantis
 	${catkin_INCLUDE_DIRS}
+	
 	${Eigen_INCLUDE_DIRS}
 )
 
@@ -51,7 +52,10 @@ catkin_package(
    DEPENDS opencv
 )
 
-add_library(montecarlo include/mantis/MonteCarlo.cpp include/mantis/error/computeError.h)
+add_executable(mantis2 src/mantis2.cpp)
+target_link_libraries(mantis2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
+
+add_library(montecarlo include/mantis/MonteCarlo.cpp)
 set_target_properties(montecarlo PROPERTIES LINKER_LANGUAGE CXX)
 
 add_executable(mantis_client src/mantis_client.cpp)

@@ -34,20 +34,25 @@
 
 #include "MantisTypes.h"
 
-#include "error/MantisRequest.h"
-#include "error/computeError.h"
+#include "MantisRequest.h"
 
-#define DEFAULT_MINX  -10
-#define DEFAULT_MINY  -10
+#define SUPER_DEBUG true
+
+#define DEFAULT_MINX  -2
+#define DEFAULT_MINY  -2
 #define DEFAULT_MINZ    0
-#define DEFAULT_MAXX   10
-#define DEFAULT_MAXY   10
-#define DEFAULT_MAXZ    5
+#define DEFAULT_MAXX   2
+#define DEFAULT_MAXY   2
+#define DEFAULT_MAXZ    2
 #define DEFAULT_PROJECTED_MIN_PROJECTED_U  -2
 #define DEFAULT_PROJECTED_MIN_PROJECTED_V  -2
 #define DEFAULT_PROJECTED_MAX_PROJECTED_U  2
 #define DEFAULT_PROJECTED_MAX_PROJECTED_V  2
 #define DEFAULT_WEIGHT_BIAS .5
+
+#define WHITE cv::Vec3i(255, 255, 255)
+#define RED cv::Vec3i(113, 48, 32)
+#define GREEN cv::Vec3i(50, 100, 37)
 
 
 class MonteCarlo {
@@ -63,7 +68,16 @@ public:
 	}
 
 	tf::Transform generateRandomTransform();
+	tf::Transform generateGaussianTransform(double sigma);
 	std::vector<tf::Vector3> parseCoordinatesFromString(std::string str);
+
+	MantisRequest parseRequest(mantis::mantisServiceRequest req);
+
+	cv::Point2f project2d(cv::Mat& K, tf::Vector3& pt, tf::Transform& trans);
+	double computeCameraError(MantisRequest& req, MantisRequest::cam& cam, tf::Transform& w2c);
+	double computeWeight(MantisRequest& req, Particle& particle);
+
+	cv::Mat projectGrid(cv::Mat src, Particle part, MantisRequest req);
 
 	Particle runFilter(mantis::mantisServiceRequest req);
 
@@ -79,8 +93,5 @@ public:
 	double RADIUS_INVERSE_MULTIPLIER;
 	double WEIGHT_BIAS;
 };
-
-
-#include "error/computeError.h"
 
 #endif /* MANTIS_INCLUDE_MANTIS_MONTECARLO_H_ */

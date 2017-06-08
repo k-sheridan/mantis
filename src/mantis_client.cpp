@@ -15,10 +15,12 @@
 
 #include <eigen3/Eigen/Eigen>
 
-#define SUPER_DEBUG true
+#define SUPER_DEBUG false
 
 #define QUAD_STRECH_FACTOR 1.31
 #define MASK_THICKNESS_FACTOR 0.25
+
+#define BLUR_SIGMA 10
 
 //HSV mins and maxes
 #define WHITE_MIN cv::Scalar(0, 0, 80)
@@ -49,7 +51,7 @@ double SEARCH_RADIUS_MULTIPLIER;
 
 ros::ServiceClient particle_filter_service;
 
-#ifdef SUPER_DEBUG
+#if SUPER_DEBUG
 cv::Mat final;
 bool imgReady = false;
 #endif
@@ -289,7 +291,7 @@ void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::C
 {
 
 	ROS_INFO("reading message");
-	cv::Mat temp = cv_bridge::toCvShare(img, "bgr8")->image.clone();
+	cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
 
 	//frame1.K = get3x3FromVector(cam->K);
 	//frame1.D = cv::Mat(cam->D, false);
@@ -338,13 +340,13 @@ cv::Mat run(Frame* f)
 	f->img.copyTo(measurement, mask); // create the data to be used
 
 	//cv::GaussianBlur(measurement, measurement, cv::Size(21, 21), 21, 21);
-	cv::GaussianBlur(measurement, measurement, cv::Size(0, 0), 5, 5);
+	cv::GaussianBlur(measurement, measurement, cv::Size(0, 0), BLUR_SIGMA, BLUR_SIGMA);
 
 	//cv::fisheye::undistortImage(measurement, measurement, f->K, f->D, cv::Mat::eye(3, 3, CV_32F));
 	//cv::fisheye::undistortImage(measurement, measurement, f->K, f->D, f->K);
 
 
-#ifdef SUPER_DEBUG
+#if SUPER_DEBUG
 	final = measurement;
 	/*
 	cv::Mat temp;
@@ -448,7 +450,7 @@ int main(int argc, char **argv)
 		//ROS_DEBUG("spun once");
 		loop_rate.sleep();
 
-#ifdef SUPER_DEBUG
+#if SUPER_DEBUG
 		if(imgReady){
 		cv::imshow("debug", final);
 		cv::waitKey(30);}

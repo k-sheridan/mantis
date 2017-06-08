@@ -5,4 +5,8 @@
 	<node name="maintis_client" pkg="mantis" type="mantis_client" output="screen">
 		<rosparam file="$(find mantis)/params/map.yaml"/>
 	</node>
+	
+	<node pkg="tf" type="static_transform_publisher" name="cam_link_pub1" 
+			args="0 0 0 0 90 0 /bottom /base_link 100"/>
+	
 </launch>

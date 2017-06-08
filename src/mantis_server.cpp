@@ -23,6 +23,9 @@ MonteCarlo* mc;
 bool runMantis(mantis::mantisService::Request& req, mantis::mantisService::Response& res)
 {
 	ROS_DEBUG("got request");
+
+	Particle result = mc->runFilter(req);
+
 	return true;
 }
 

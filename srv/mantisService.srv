@@ -4,7 +4,8 @@ sensor_msgs/CameraInfo[] camera_info
 
 # this is the update for each of the particles
 # this is applied to each particle before reevaluating
-geometry_msgs/Twist twist
+geometry_msgs/Vector3 delta_pos
+geometry_msgs/Quaternion delta_quat
 ---
 
 geometry_msgs/Pose pose

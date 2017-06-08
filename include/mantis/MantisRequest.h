@@ -9,11 +9,13 @@
 #define MANTIS_INCLUDE_MANTIS_ERROR_MANTISREQUEST_H_
 
 #include "mantis/MantisTypes.h"
+#include <mantis/mantisService.h>
 
 struct MantisRequest {
 	struct cam {
 		cv::Mat img;
 		cv::Mat K;
+		cv::Mat K_inv;
 		cv::Mat D;
 		tf::StampedTransform b2c; //base to camera
 		tf::Transform b2c_inv; //base to camera inverted
