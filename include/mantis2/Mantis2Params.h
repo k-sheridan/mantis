@@ -22,6 +22,8 @@ cv::Mat final;
 
 #define GRID_SIZE 9
 
+#define POSE_SOLVE_METHOD cv::SOLVEPNP_ITERATIVE
+
 //params
 double GRID_SPACING;
 int FAST_THRESHOLD;

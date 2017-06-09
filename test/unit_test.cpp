@@ -66,7 +66,9 @@ int main(int argc, char **argv)
 	std::vector<cv::Point2d> img2_pts;
 
 	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << 0.4, CV_PI, 1);
-	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0, -3);
+	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0.2, -2);
+
+	ROS_DEBUG_STREAM("ACTUAL rvec: " << rvec << " tvec: " << tvec);
 
 	cv::projectPoints(obj_pts, rvec, tvec, K, cv::noArray(), img2_pts);
 
@@ -86,12 +88,35 @@ int main(int argc, char **argv)
 
 	ROS_DEBUG_STREAM("position: " << hyp2.getPosition().x() << ", " << hyp2.getPosition().y() << ", " << hyp2.getPosition().z());
 
-	cv::imshow("test", test);
+	cv::imshow("actual", test);
 	cv::waitKey(30);
 	ros::Duration sleep(1);
 	sleep.sleep();
 
-	//try to rotate the points 90 degrees
+	//TEST THE ERROR
+	cv::Mat rvec_test;
+	cv::Mat tvec_test;
+	cv::solvePnP(obj_pts, img2_pts, K, cv::noArray(), rvec_test, tvec_test, false, POSE_SOLVE_METHOD);
+	std::vector<cv::Point2d> reprojTest;
+	cv::projectPoints(obj_pts, rvec_test, tvec_test, K, cv::noArray(), reprojTest);
+	test = cv::Mat::zeros(300, 300, CV_8UC3);
+	cv::drawMarker(test, reprojTest.at(0), cv::Scalar(255, 255, 255));
+	cv::drawMarker(test, reprojTest.at(1), cv::Scalar(255, 0, 0));
+	cv::drawMarker(test, reprojTest.at(2), cv::Scalar(0, 255, 0));
+	cv::drawMarker(test, reprojTest.at(3), cv::Scalar(0, 0, 255));
+	cv::imshow("reproj", test);
+	cv::waitKey(30);
+	ros::Duration sleepers(5);
+
+	double error = 0;
+	for(int i = 0; i < reprojTest.size(); i++)
+	{
+		error += (reprojTest.at(i)-img2_pts.at(i)).ddot((reprojTest.at(i)-img2_pts.at(i)));
+	}
+	ROS_DEBUG_STREAM("ERROR: " << sqrt(error));
+	sleepers.sleep();
+
+	/*//try to rotate the points 90 degrees
 	std::vector<cv::Point3d> obj2_pts;
 	obj2_pts.push_back(cv::Point3d(0.5, -0.5, 0));
 	obj2_pts.push_back(cv::Point3d(0.5, 0.5, 0));
@@ -100,12 +125,12 @@ int main(int argc, char **argv)
 
 	Hypothesis hyp3 = computeHypothesis(img2_pts, obj2_pts, K);
 
-	ROS_DEBUG_STREAM("position: " << hyp3.getPosition().x() << ", " << hyp3.getPosition().y() << ", " << hyp3.getPosition().z());
+	ROS_DEBUG_STREAM("hyp3 position: " << hyp3.getPosition().x() << ", " << hyp3.getPosition().y() << ", " << hyp3.getPosition().z());
 
 	cv::imshow("test", test);
 	cv::waitKey(30);
 	ros::Duration sleep2(1);
-	sleep2.sleep();
+	sleep2.sleep();*/
 
 	//MORE
 
@@ -124,17 +149,44 @@ int main(int argc, char **argv)
 	Quadrilateral quad;
 	for(auto e : img2_pts)
 	{
-		quad.test_points.push_back(cv::Point(e.x, e.y));
+		quad.test_points.push_back(cv::Point2d(e.x, e.y));
 	}
 
 	std::vector<Hypothesis> hypos = computeAllCentralHypothesis(quad, possibilities, K);
+	//std::vector<Hypothesis> hypos = computeAllCentralHypothesisFAST(quad, obj_pts, K);
+
+
+	//test using tf
+	tf::Vector3 pt1(0.5, 0.5, 0);
+	tf::Vector3 pt2(-0.5, 0.5, 0);
+	tf::Vector3 pt3(-0.5, -0.5, 0);
+	tf::Vector3 pt4(0.5, -0.5, 0);
 
 	for(auto e : hypos)
+	{
+		ROS_DEBUG_STREAM( "Pos: x: " << e.getPosition().x() << " y: " << e.getPosition().y() << " z: " << e.getPosition().z());
+	}
+	/*for(auto e : hypos)
 	{
 		//ROS_DEBUG_STREAM(e.stream());
 		//std::cout << e;
 		ROS_DEBUG_STREAM( "Pos: x: " << e.getPosition().x() << " y: " << e.getPosition().y() << " z: " << e.getPosition().z());
-	}
+		test = cv::Mat::zeros(300, 300, CV_8UC3);
+
+
+		cv::drawMarker(test, e.projectPoint(pt1, K), cv::Scalar(255, 255, 255));
+		cv::drawMarker(test, e.projectPoint(pt2, K), cv::Scalar(255, 0, 0));
+		cv::drawMarker(test, e.projectPoint(pt3, K), cv::Scalar(0, 255, 0));
+		cv::drawMarker(test, e.projectPoint(pt4, K), cv::Scalar(0, 0, 255));
+
+		cv::imshow("test", test);
+		cv::waitKey(30);
+
+		ros::Duration sleep3(2);
+		sleep3.sleep();
+
+
+	}*/
 
 	//loop till end
 	while(ros::ok()){

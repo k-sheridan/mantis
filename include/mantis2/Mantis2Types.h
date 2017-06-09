@@ -70,6 +70,27 @@ public:
 		q = w2c.getRotation();
 	}
 
+	tf::Transform getW2C(){return w2c;}
+	tf::Transform getC2W(){return c2w;}
+
+	/*
+	 * project point into camera frame from world
+	 */
+	tf::Vector3 projectPoint(tf::Vector3 in)
+	{
+		return c2w * in;
+	}
+
+	/*
+	 * project 3d point to pixel point from world
+	 */
+	cv::Point2d projectPoint(tf::Vector3 in, cv::Mat_<float> K)
+	{
+		tf::Vector3 reproj = projectPoint(in);
+
+		return cv::Point2d(K(0)*(reproj.x()/reproj.z()) + K(2), K(4)*(reproj.y()/reproj.z()) + K(5));
+	}
+
 };
 
 std::ostream& operator<< (std::ostream& o, const Hypothesis& hyp)

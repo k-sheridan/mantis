@@ -13,7 +13,7 @@ struct Quadrilateral
 {
 	cv::Point2f center; // the centroid of this quad
 	std::vector<cv::Point> contour; // the raw detected corners of this quad
-	std::vector<cv::Point> test_points; // test points of the quad for pose
+	std::vector<cv::Point2d> test_points; // test points of the quad for pose
 
 	double side_length; // the approximate area of this quad
 	//Color color; // the color of this quad
@@ -31,12 +31,12 @@ struct Quadrilateral
 		return cv::Point2f(x_sigma / contour.size(), y_sigma / contour.size());
 	}
 
-	std::vector<cv::Point> computeTestPoints()
+	std::vector<cv::Point2d> computeTestPoints()
 																	{
-		std::vector<cv::Point> test;
+		std::vector<cv::Point2d> test;
 		for(auto e : contour)
 		{
-			cv::Point pt = cv::Point((cv::Point2f(e) - center) * QUAD_STRECH_FACTOR + center);
+			cv::Point2d pt = cv::Point2d((cv::Point2f(e) - center) * QUAD_STRECH_FACTOR + center);
 			test.push_back(pt);
 		}
 		return test;
@@ -158,7 +158,7 @@ int removeDuplicateQuads(std::vector<Quadrilateral>& quads)
 
 }
 
-cv::Mat createGridMask(std::vector<Quadrilateral> quads, int rows, int cols)
+/*cv::Mat createGridMask(std::vector<Quadrilateral> quads, int rows, int cols)
 {
 	cv::Mat mask = cv::Mat::zeros(rows, cols, CV_8U);
 
@@ -172,7 +172,7 @@ cv::Mat createGridMask(std::vector<Quadrilateral> quads, int rows, int cols)
 	}
 
 	return mask;
-}
+}*/
 
 cv::Mat get3x3FromVector(boost::array<double, 9> vec)
 {
