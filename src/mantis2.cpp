@@ -37,9 +37,13 @@
 
 #include "mantis2/QuadDetection.h"
 
-Frame frame0;
+#include "mantis2/PoseEstimator.h"
 
-void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
+Frame quad_detect_frame;
+
+std::vector<Hypothesis> hypotheses; // all of our best guesses as to where we are
+
+void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
 
 	ROS_INFO("reading message");
@@ -47,17 +51,22 @@ void cameraCallback0(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::C
 
 	//frame1.K = get3x3FromVector(cam->K);
 	//frame1.D = cv::Mat(cam->D, false);
-	frame0.cam_info_msg = *cam;
-	frame0.img_msg = *img;
-	frame0.img = temp;
+	quad_detect_frame.cam_info_msg = *cam;
+	quad_detect_frame.img_msg = *img;
+	quad_detect_frame.img = temp;
 
 
 	//ROS_INFO_STREAM("intrinsic; " << frame0.K);
 	//ROS_INFO_STREAM("distortion; " << frame0.D);
 
-	int quadCount = detectQuadrilaterals(&frame0);
+	// detect quads in the image
+	int quadCount = detectQuadrilaterals(&quad_detect_frame);
+
 	ROS_DEBUG_STREAM(quadCount << " quads detected");
 	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
+
+	// determine our next guesses
+	//computeHypotheses(quad_detect_frame.quads, );
 }
 
 int main(int argc, char **argv)
@@ -72,21 +81,9 @@ int main(int argc, char **argv)
 
 	image_transport::ImageTransport it(nh);
 
-	image_transport::CameraSubscriber cameraSub0 = it.subscribeCamera(CAMERA_0_TOPIC, 1, cameraCallback0);
+	image_transport::CameraSubscriber quadDetectCameraSub = it.subscribeCamera(QUAD_DETECT_CAMERA_TOPIC, 1, quadDetection);
 
-	while(nh.ok()){
-
-		//ROS_DEBUG("spinning once");
-		ros::spinOnce();
-		//ROS_DEBUG("spun once");
-		loop_rate.sleep();
-
-#if SUPER_DEBUG
-		if(imgReady){
-		cv::imshow("debug", final);
-		cv::waitKey(30);}
-#endif
-	}
+	ros::spin();
 
 	return 0;
 }

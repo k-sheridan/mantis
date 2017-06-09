@@ -1,8 +1,5 @@
 <launch>
-	<node name="mantis_server" pkg="mantis" type="mantis_server" output="screen">
-		<rosparam file="$(find mantis)/params/map.yaml"/>
-	</node>
-	<node name="maintis_client" pkg="mantis" type="mantis_client" output="screen">
+	<node name="mantis2" pkg="mantis" type="mantis2" output="screen">
 		<rosparam file="$(find mantis)/params/map.yaml"/>
 	</node>
 	

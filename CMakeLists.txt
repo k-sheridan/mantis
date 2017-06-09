@@ -52,6 +52,10 @@ catkin_package(
    DEPENDS opencv
 )
 
+add_executable(mantis_test test/unit_test.cpp)
+target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
+
+
 add_executable(mantis2 src/mantis2.cpp)
 target_link_libraries(mantis2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
 

@@ -51,7 +51,7 @@ struct Quadrilateral
 		cv::Point first_delta = (this->contour.at(0) - this->contour.at(1));
 		//ROS_DEBUG_STREAM("delta is: " << first_delta);
 		this->side_length = sqrt(first_delta.x*first_delta.x + first_delta.y*first_delta.y);
-		ROS_DEBUG_STREAM("side length: " << side_length);
+		//ROS_DEBUG_STREAM("side length: " << side_length);
 		this->center = this->computeQuadCenter(_contour);
 		//this->color = Color::OTHER;
 
@@ -144,11 +144,11 @@ int removeDuplicateQuads(std::vector<Quadrilateral>& quads)
 		}
 	}
 
-	ROS_DEBUG_STREAM("found " << neighbors << " neighbors");
+	//ROS_DEBUG_STREAM("found " << neighbors << " neighbors");
 
-	ROS_DEBUG_STREAM("size before: " << quads.size());
+	//ROS_DEBUG_STREAM("size before: " << quads.size());
 	quads.erase(std::remove_if(quads.begin(), quads.end(), [](Quadrilateral x){return x.neighbor;}), quads.end());
-	ROS_DEBUG_STREAM("size after: " << quads.size());
+	//ROS_DEBUG_STREAM("size after: " << quads.size());
 
 	return neighbors;
 
@@ -210,6 +210,61 @@ int detectQuadrilaterals(Frame* f)
 	}
 
 	removeDuplicateQuads(f->quads);
+
+#if SUPER_DEBUG
+	final = f->img.clone();
+	/*
+	cv::Mat temp;
+	f->img.copyTo(temp);
+	final = cv::Mat::zeros(temp.rows, temp.cols, CV_8U);
+	temp.copyTo(final, createGridMask(f->quads, temp.rows, temp.cols));*/
+	//temp.copyTo(final);
+	//final = createGridMask(f->quads, temp.rows, temp.cols);
+
+	//final = cv::Mat::zeros(final.rows, final.cols, final.type());
+
+	for(auto t : f->quads)
+	{
+		for(auto e : t.test_points)
+		{
+			cv::drawMarker(final, e, cv::Scalar(125, 125, 125));
+		}
+	}
+
+
+	//cv::RNG rng(12345);
+	for( int i = 0; i< f->quads.size(); i++ )
+	{
+		cv::Scalar color = cv::Scalar( 255,0,0 );
+		std::vector<std::vector<cv::Point> > cont;
+		cont.push_back(f->quads.at(i).contour);
+		cv::drawContours( final, cont, 0, color, 2, 8);
+		/*
+		switch (f->quads.at(i).color) {
+		case Color::WHITE:
+			ROS_DEBUG_STREAM("drawing white marker");
+			//cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 255, 255));
+			break;
+		case Color::GREEN:
+			ROS_DEBUG_STREAM("drawing green marker");
+			//cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 255, 0));
+			break;
+		case Color::RED:
+			ROS_DEBUG_STREAM("drawing red marker");
+			cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(0, 0, 255));
+			break;
+		default:
+			ROS_DEBUG_STREAM("drawing other marker");
+			//cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 0, 255));
+			break;
+		}*/
+		//cv::drawMarker(final, f->quads.at(i).center, cv::Scalar(255, 255, 255), cv::MarkerTypes::MARKER_STAR);
+	}
+
+	imgReady = true;
+	cv::imshow("debug", final);
+	cv::waitKey(30);
+#endif
 
 	return f->quads.size();
 

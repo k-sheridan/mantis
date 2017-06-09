@@ -12,10 +12,10 @@
  * a guess about our pose
  */
 struct Hypothesis{
-	private:
+private:
 	tf::Transform c2w, w2c; // cam to/from world transform
 	tf::Quaternion q;
-	public:
+public:
 	double likelihood;
 	int observations;
 
@@ -51,6 +51,20 @@ struct Hypothesis{
 	double getDistance(Hypothesis& other)
 	{
 		return (this->getPosition() - other.getPosition()).length();
+	}
+
+	void setC2W(tf::Transform trans)
+	{
+		c2w = trans;
+		w2c = c2w.inverse();
+		q = w2c.getRotation();
+	}
+
+	void setW2C(tf::Transform trans)
+	{
+		w2c = trans;
+		c2w = w2c.inverse();
+		q = w2c.getRotation();
 	}
 
 };
