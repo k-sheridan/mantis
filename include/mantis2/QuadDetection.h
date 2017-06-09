@@ -58,6 +58,10 @@ struct Quadrilateral
 		//test points
 		test_points = computeTestPoints();
 	}
+
+	Quadrilateral(){
+
+	}
 };
 
 struct Frame

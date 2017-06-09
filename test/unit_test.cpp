@@ -91,9 +91,50 @@ int main(int argc, char **argv)
 	ros::Duration sleep(1);
 	sleep.sleep();
 
+	//try to rotate the points 90 degrees
+	std::vector<cv::Point3d> obj2_pts;
+	obj2_pts.push_back(cv::Point3d(0.5, -0.5, 0));
+	obj2_pts.push_back(cv::Point3d(0.5, 0.5, 0));
+	obj2_pts.push_back(cv::Point3d(-0.5, 0.5, 0));
+	obj2_pts.push_back(cv::Point3d(-0.5, -0.5, 0));
+
+	Hypothesis hyp3 = computeHypothesis(img2_pts, obj2_pts, K);
+
+	ROS_DEBUG_STREAM("position: " << hyp3.getPosition().x() << ", " << hyp3.getPosition().y() << ", " << hyp3.getPosition().z());
+
+	cv::imshow("test", test);
+	cv::waitKey(30);
+	ros::Duration sleep2(1);
+	sleep2.sleep();
+
 	//MORE
 
+	ROS_DEBUG_STREAM("Possibilities: ");
+	std::vector<std::vector<cv::Point3d>> possibilities = generatePossibleOrientations(1);
+	for(auto e : possibilities)
+	{
+		ROS_DEBUG("MAP\n");
+		for(auto i : e)
+		{
+			ROS_DEBUG_STREAM(i);
+		}
+	}
 
+	ROS_DEBUG_STREAM("\n\n\n\n\nTESTING Possibilities");
+	Quadrilateral quad;
+	for(auto e : img2_pts)
+	{
+		quad.test_points.push_back(cv::Point(e.x, e.y));
+	}
+
+	std::vector<Hypothesis> hypos = computeAllCentralHypothesis(quad, possibilities, K);
+
+	for(auto e : hypos)
+	{
+		//ROS_DEBUG_STREAM(e.stream());
+		//std::cout << e;
+		ROS_DEBUG_STREAM( "Pos: x: " << e.getPosition().x() << " y: " << e.getPosition().y() << " z: " << e.getPosition().z());
+	}
 
 	//loop till end
 	while(ros::ok()){

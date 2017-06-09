@@ -8,6 +8,9 @@
 #ifndef MANTIS_INCLUDE_MANTIS2_MANTIS2TYPES_H_
 #define MANTIS_INCLUDE_MANTIS2_MANTIS2TYPES_H_
 
+#include <iosfwd>
+#include <ostream>
+
 /*
  * a guess about our pose
  */
@@ -40,8 +43,8 @@ public:
 		return msg;
 	}
 
-	tf::Quaternion getQuaternion(){return this->q;}
-	tf::Vector3 getPosition(){return this->w2c.getOrigin();}
+	tf::Quaternion& getQuaternion(){return q;}
+	tf::Vector3& getPosition(){return w2c.getOrigin();}
 
 	double getDifferenceAngle(Hypothesis& other)
 	{
@@ -68,6 +71,12 @@ public:
 	}
 
 };
+
+std::ostream& operator<< (std::ostream& o, const Hypothesis& hyp)
+{
+	//return o << "Pos: x: " << hyp.getPosition().x() << " y: " << hyp.getPosition().y() << " z: " << hyp.getPosition().z() << std::endl;
+	return o << "test";
+}
 
 
 
