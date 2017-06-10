@@ -24,13 +24,13 @@ public:
 
 	geometry_msgs::PoseStamped toPoseMsg(ros::Time stamp, std::string frame)
 	{
-		tf::Quaternion q = w2c.getRotation();
-
 		geometry_msgs::PoseStamped msg;
 
-		msg.pose.position.x = w2c.getOrigin().x();
-		msg.pose.position.y = w2c.getOrigin().y();
-		msg.pose.position.z = w2c.getOrigin().z();
+		tf::Vector3 pos = w2c.getOrigin();
+
+		msg.pose.position.x = pos.x();
+		msg.pose.position.y = pos.y();
+		msg.pose.position.z = pos.z();
 
 		msg.pose.orientation.w = q.w();
 		msg.pose.orientation.x = q.x();

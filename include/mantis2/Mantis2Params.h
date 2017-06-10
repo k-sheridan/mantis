@@ -21,8 +21,16 @@ cv::Mat final;
 #define MASK_THICKNESS_FACTOR 0.25
 
 #define GRID_SIZE 9
+#define DEF_GRID_SPACING 0.32
+
+#define MAX_QUAD_ERROR 12.0
 
 #define POSE_SOLVE_METHOD cv::SOLVEPNP_ITERATIVE
+
+#define HYPOTHESES_PUB_TOPIC "mantis/hypotheses"
+
+#define BASE_FRAME "base_link"
+#define WORLD_FRAME "world"
 
 //params
 double GRID_SPACING;
@@ -32,6 +40,43 @@ int RATE;
 int POLYGON_EPSILON;
 std::string QUAD_DETECT_CAMERA_TOPIC;
 double SEARCH_RADIUS_MULTIPLIER;
+
+std::vector<cv::Point3d> gridSquare;
+
+std::vector<std::vector<cv::Point3d>> gridSquarePossibilities;
+
+std::vector<cv::Point3d> generateGridSquare(double spacing){
+	std::vector<cv::Point3d> square;
+	square.push_back(cv::Point3d(spacing/2, spacing/2, 0));
+	square.push_back(cv::Point3d(-spacing/2, spacing/2, 0));
+	square.push_back(cv::Point3d(-spacing/2, -spacing/2, 0));
+	square.push_back(cv::Point3d(spacing/2, -spacing/2, 0));
+	return square;
+}
+
+std::vector<std::vector<cv::Point3d>> generatePossibleOrientations(double grid_spacing){
+	std::vector<std::vector<cv::Point3d>> possibilities; // possibility possibilities
+	std::vector<cv::Point3d> possibility;
+	cv::Point3d temp;
+
+	possibility.push_back(cv::Point3d(grid_spacing/2, grid_spacing/2, 0));
+	possibility.push_back(cv::Point3d(-grid_spacing/2, grid_spacing/2, 0));
+	possibility.push_back(cv::Point3d(-grid_spacing/2, -grid_spacing/2, 0));
+	possibility.push_back(cv::Point3d(grid_spacing/2, -grid_spacing/2, 0));
+
+	possibilities.push_back(possibility);
+
+	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
+	possibilities.push_back(possibility);
+
+	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
+	possibilities.push_back(possibility);
+
+	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
+	possibilities.push_back(possibility);
+
+	return possibilities;
+}
 
 std::vector<tf::Vector3> parseCoordinatesFromString(std::string str) {
 	//sets up the row strings
@@ -75,7 +120,10 @@ void getParameters()
 	ros::param::param <int> ("~polygon_epsilon", POLYGON_EPSILON, 10);
 
 	ros::param::param <double> ("~neighborhood_search_radius_multiplier", SEARCH_RADIUS_MULTIPLIER, 0.1);
-	ros::param::param <double> ("~grid_spacing", GRID_SPACING, 1);
+	ros::param::param <double> ("~grid_spacing", GRID_SPACING, DEF_GRID_SPACING);
+
+	gridSquare = generateGridSquare(GRID_SPACING);
+	gridSquarePossibilities = generatePossibleOrientations(GRID_SPACING);
 
 	//WHITE_BGR = WHITE_INIT;
 	//RED_BGR = RED_INIT;

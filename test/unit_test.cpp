@@ -43,6 +43,8 @@ int main(int argc, char **argv)
 
 	ros::NodeHandle nh;
 
+	double error;
+
 	cv::Mat_<float> K = (cv::Mat_<float>(3, 3) << 300, 0, 150, 0, 300, 150, 0, 0, 1);
 
 	//print
@@ -61,12 +63,12 @@ int main(int argc, char **argv)
 	img_pts.push_back(cv::Point2d(K(0)*-0.5+K(2), K(4)*-0.5 + K(5)));
 	img_pts.push_back(cv::Point2d(K(0)*0.5+K(2), K(4)*-0.5 + K(5)));
 
-	Hypothesis hyp1 = computeHypothesis(img_pts, obj_pts, K);
+	Hypothesis hyp1 = computeHypothesis(img_pts, obj_pts, K, error);
 
 	std::vector<cv::Point2d> img2_pts;
 
-	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << 0.4, CV_PI, 1);
-	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0.2, -2);
+	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << -1, CV_PI, 0);
+	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0.6, 3);
 
 	ROS_DEBUG_STREAM("ACTUAL rvec: " << rvec << " tvec: " << tvec);
 
@@ -84,7 +86,7 @@ int main(int argc, char **argv)
 	cv::drawMarker(test, img2_pts.at(3), cv::Scalar(0, 0, 255));
 
 
-	Hypothesis hyp2 = computeHypothesis(img2_pts, obj_pts, K);
+	Hypothesis hyp2 = computeHypothesis(img2_pts, obj_pts, K, error);
 
 	ROS_DEBUG_STREAM("position: " << hyp2.getPosition().x() << ", " << hyp2.getPosition().y() << ", " << hyp2.getPosition().z());
 
@@ -108,7 +110,7 @@ int main(int argc, char **argv)
 	cv::waitKey(30);
 	ros::Duration sleepers(5);
 
-	double error = 0;
+	error = 0;
 	for(int i = 0; i < reprojTest.size(); i++)
 	{
 		error += (reprojTest.at(i)-img2_pts.at(i)).ddot((reprojTest.at(i)-img2_pts.at(i)));
@@ -152,8 +154,8 @@ int main(int argc, char **argv)
 		quad.test_points.push_back(cv::Point2d(e.x, e.y));
 	}
 
-	std::vector<Hypothesis> hypos = computeAllCentralHypothesis(quad, possibilities, K);
-	//std::vector<Hypothesis> hypos = computeAllCentralHypothesisFAST(quad, obj_pts, K);
+	//std::vector<Hypothesis> hypos = computeAllCentralHypothesis(quad, possibilities, K);
+	std::vector<Hypothesis> hypos = computeAllCentralHypothesisFAST(quad, obj_pts, K);
 
 
 	//test using tf

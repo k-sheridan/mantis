@@ -32,7 +32,7 @@ struct Quadrilateral
 	}
 
 	std::vector<cv::Point2d> computeTestPoints()
-																	{
+																			{
 		std::vector<cv::Point2d> test;
 		for(auto e : contour)
 		{
@@ -40,7 +40,7 @@ struct Quadrilateral
 			test.push_back(pt);
 		}
 		return test;
-																	}
+																			}
 
 	Quadrilateral(std::vector<cv::Point> _contour)
 	{
@@ -66,7 +66,7 @@ struct Quadrilateral
 
 struct Frame
 {
-	cv::Mat img;
+	cv::Mat img, K, D;
 	sensor_msgs::Image img_msg;
 	sensor_msgs::CameraInfo cam_info_msg;
 	cv::Mat canny;
@@ -272,6 +272,16 @@ int detectQuadrilaterals(Frame* f)
 
 	return f->quads.size();
 
+}
+
+std::vector<Quadrilateral> undistortQuadTestPoints(std::vector<Quadrilateral> quads, cv::Mat K, cv::Mat D){
+	for(auto& e : quads)
+	{
+		//ROS_DEBUG_STREAM("before " << e.test_points.back());
+		cv::fisheye::undistortPoints(e.test_points, e.test_points, K, D, cv::noArray(), K);
+		//ROS_DEBUG_STREAM("after " << e.test_points.back());
+	}
+	return quads;
 }
 
 #endif /* MANTIS_INCLUDE_MANTIS_QUADDETECTION_H_ */

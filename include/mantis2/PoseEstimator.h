@@ -8,8 +8,12 @@
 #ifndef MANTIS_INCLUDE_MANTIS2_POSEESTIMATOR_H_
 #define MANTIS_INCLUDE_MANTIS2_POSEESTIMATOR_H_
 
-double computeHypothesisQuadReprojectionError(std::vector<cv::Point2d> img_pts, std::vector<cv::Point3d> object_pts, cv::Mat K, cv::Mat rvec, cv::Mat tvec)
-{
+std::vector<Hypothesis> computeAllCentralHypothesisFAST(Quadrilateral quad, std::vector<cv::Point3d> obj_pts, cv::Mat K);
+std::vector<Hypothesis> computeAllQuadHypothesesFAST(Quadrilateral quad, std::vector<cv::Point3d> obj_pts, cv::Mat K);
+std::vector<Hypothesis> computeAllCentralHypothesis(Quadrilateral quad, std::vector<std::vector<cv::Point3d>> possibilities, cv::Mat K);
+std::vector<Hypothesis> computeAllQuadHypotheses(Quadrilateral quad, std::vector<std::vector<cv::Point3d>> possibilities, cv::Mat K);
+
+double computeHypothesisQuadReprojectionError(std::vector<cv::Point2d> img_pts, std::vector<cv::Point3d> object_pts, cv::Mat K, cv::Mat rvec, cv::Mat tvec){
 	std::vector<cv::Point2d> reprojTest;
 	cv::projectPoints(object_pts, rvec, tvec, K, cv::noArray(), reprojTest);
 	double error = 0;
@@ -20,30 +24,19 @@ double computeHypothesisQuadReprojectionError(std::vector<cv::Point2d> img_pts, 
 	return sqrt(error);
 }
 
-std::vector<std::vector<cv::Point3d>> generatePossibleOrientations(double grid_spacing)
-		{
-	std::vector<std::vector<cv::Point3d>> possibilities; // possibility possibilities
-	std::vector<cv::Point3d> possibility;
-	cv::Point3d temp;
+double computeHypothesisTFReprojectionError(std::vector<cv::Point2d> img_pts, std::vector<cv::Point3d> object_pts, cv::Mat K, Hypothesis hyp)
+{
+	double error = 0;
+	for(int i = 0; i < object_pts.size(); i++)
+	{
+		cv::Point2d reproj = hyp.projectPoint(tf::Vector3(object_pts.at(i).x, object_pts.at(i).y, object_pts.at(i).z), K);
 
-	possibility.push_back(cv::Point3d(grid_spacing/2, grid_spacing/2, 0));
-	possibility.push_back(cv::Point3d(-grid_spacing/2, grid_spacing/2, 0));
-	possibility.push_back(cv::Point3d(-grid_spacing/2, -grid_spacing/2, 0));
-	possibility.push_back(cv::Point3d(grid_spacing/2, -grid_spacing/2, 0));
+		error += (reproj-img_pts.at(i)).ddot((reproj-img_pts.at(i)));
+	}
+	return sqrt(error);
+}
 
-	possibilities.push_back(possibility);
 
-	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
-	possibilities.push_back(possibility);
-
-	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
-	possibilities.push_back(possibility);
-
-	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
-	possibilities.push_back(possibility);
-
-	return possibilities;
-		}
 
 tf::Transform cvRvecTvec2tfTransform(cv::Mat rvec, cv::Mat tvec)
 {
@@ -62,7 +55,7 @@ tf::Transform cvRvecTvec2tfTransform(cv::Mat rvec, cv::Mat tvec)
 	/*double x, y, z;
 	trans.getBasis().getRPY(x, y, z);
 	ROS_DEBUG_STREAM("tf rvec " << x <<", "<<y<<", "<<z);*/
-	ROS_DEBUG_STREAM(trans.getOrigin().x() << ", " << trans.getOrigin().y() << ", " << trans.getOrigin().z());
+	//ROS_DEBUG_STREAM(trans.getOrigin().x() << ", " << trans.getOrigin().y() << ", " << trans.getOrigin().z());
 
 	return trans;
 }
@@ -74,13 +67,28 @@ tf::Transform cvRvecTvec2tfTransform(cv::Mat rvec, cv::Mat tvec)
  * quads - detected quads in this frame
  * prior - the old best extrapolated hypotheses
  */
-std::vector<Hypothesis> computeHypotheses(std::vector<Quadrilateral> quads, std::vector<Hypothesis> prior){
+std::vector<Hypothesis> computeHypotheses(std::vector<Quadrilateral> quads, std::vector<Hypothesis> prior, cv::Mat K){
 
+	std::vector<Hypothesis> hypotheses;
+
+	//first compute all possible Hypotheses
+	for(auto e : quads)
+	{
+		std::vector<Hypothesis> more = computeAllQuadHypothesesFAST(e, gridSquare, K);
+		//std::vector<Hypothesis> more = computeAllQuadHypotheses(e, gridSquarePossibilities, K);
+
+		//FOR DEBUG ONLY!
+		//std::vector<Hypothesis> more = computeAllCentralHypothesis(e, gridSquarePossibilities, K);
+
+		hypotheses.insert(hypotheses.begin(), more.begin(), more.end());
+	}
+
+	return hypotheses;
 }
 
 //estimate the orientation of the camera with respect to a centered planar square
 //
-Hypothesis computeHypothesis(std::vector<cv::Point2d> img_pts, std::vector<cv::Point3d> object_pts, cv::Mat K)
+Hypothesis computeHypothesis(std::vector<cv::Point2d> img_pts, std::vector<cv::Point3d> object_pts, cv::Mat K, double& error)
 {
 	/*
 	cv::Mat H = cv::findHomography(img_pts, object_pts);
@@ -88,20 +96,27 @@ Hypothesis computeHypothesis(std::vector<cv::Point2d> img_pts, std::vector<cv::P
 	std::vector<cv::Mat> ts;
 	cv::decomposeHomographyMat(H, K, Rs, ts, cv::noArray());
 	 */
-	cv::Mat rvec;
-	cv::Mat tvec;
-	cv::solvePnP(object_pts, img_pts, K, cv::noArray(), rvec, tvec, false, POSE_SOLVE_METHOD);
+
+
+	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << 0, 0, 0);
+	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0, -2);
+
+	cv::solvePnP(object_pts, img_pts, K, cv::noArray(), rvec, tvec, true, POSE_SOLVE_METHOD);
 
 	Hypothesis hyp;
 
 	hyp.setC2W(cvRvecTvec2tfTransform(rvec, tvec));
 	//hyp.setW2C(cvRvecTvec2tfTransform(rvec, tvec));
 
+	error = computeHypothesisQuadReprojectionError(img_pts, object_pts, K, rvec, tvec);
+
+	ROS_DEBUG_STREAM("Hypothesis Error: " << error << " POS: " << hyp.getPosition().x()<<", "<<hyp.getPosition().y()<<", "<<hyp.getPosition().z());
+	ROS_DEBUG_STREAM("TF error: " << computeHypothesisTFReprojectionError(img_pts, object_pts, K, hyp));
+
 #if SUPER_DEBUG
-	//ROS_DEBUG_STREAM("solution ");
+	/*//ROS_DEBUG_STREAM("solution ");
 	//ROS_DEBUG_STREAM("		rvec: " << rvec);
 	//ROS_DEBUG_STREAM("		tvec: " << tvec);
-	ROS_DEBUG_STREAM("Hypothesis Error: " << computeHypothesisQuadReprojectionError(img_pts, object_pts, K, rvec, tvec));
 
 	//test both reprojections
 	cv::Mat test = cv::Mat::zeros(300, 300, CV_8UC3);
@@ -120,7 +135,7 @@ Hypothesis computeHypothesis(std::vector<cv::Point2d> img_pts, std::vector<cv::P
 	cv::waitKey(30);
 
 	ros::Duration sleep(2);
-	sleep.sleep();
+	sleep.sleep();*/
 
 #endif
 
@@ -130,8 +145,7 @@ Hypothesis computeHypothesis(std::vector<cv::Point2d> img_pts, std::vector<cv::P
 /*
  * this method computes one hypothesis then rotates it 3 more times
  */
-std::vector<Hypothesis> computeAllCentralHypothesisFAST(Quadrilateral quad, std::vector<cv::Point3d> obj_pts, cv::Mat K)
-										{
+std::vector<Hypothesis> computeAllCentralHypothesisFAST(Quadrilateral quad, std::vector<cv::Point3d> obj_pts, cv::Mat K){
 	//setup 2d points
 	std::vector<cv::Point2d> img_pts;
 	for(auto e : quad.test_points)
@@ -143,7 +157,17 @@ std::vector<Hypothesis> computeAllCentralHypothesisFAST(Quadrilateral quad, std:
 
 	std::vector<Hypothesis> hyps;
 
-	hyps.push_back(computeHypothesis(img_pts, obj_pts, K));
+	double error;
+	hyps.push_back(computeHypothesis(img_pts, obj_pts, K, error));
+
+	if(error > MAX_QUAD_ERROR)
+	{
+		hyps.clear();
+
+		ROS_DEBUG_STREAM("error too high returned vector with size " << hyps.size());
+		return hyps;
+	}
+
 	Hypothesis hyp;
 	hyp.setW2C(rotZ * hyps.back().getW2C());
 	hyps.push_back(hyp);
@@ -154,10 +178,68 @@ std::vector<Hypothesis> computeAllCentralHypothesisFAST(Quadrilateral quad, std:
 
 
 	return hyps;
-										}
+}
 
-std::vector<Hypothesis> computeAllCentralHypothesis(Quadrilateral quad, std::vector<std::vector<cv::Point3d>> possibilities, cv::Mat K)
-										{
+Hypothesis shiftHypothesis(Hypothesis& hyp, tf::Vector3 delta){
+	Hypothesis newHyp;
+
+	tf::Transform newW2C = hyp.getW2C();
+	newW2C.getOrigin() += delta;
+
+	newHyp.setW2C(newW2C);
+
+	return newHyp;
+}
+
+/*
+ * shifts the hypotheses to all possible positions
+ */
+std::vector<Hypothesis> computeAllQuadHypothesesFAST(Quadrilateral quad, std::vector<cv::Point3d> obj_pts, cv::Mat K){
+
+	std::vector<Hypothesis> final, central;
+
+	central = computeAllCentralHypothesisFAST(quad, obj_pts, K); // get the central hypotheses
+
+	if(central.size() == 0)
+	{
+		return final;
+	}
+
+	for(double x = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); x < ((double)GRID_SIZE/2.0)*GRID_SPACING; x += GRID_SPACING)
+	{
+		for(double y = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); y < ((double)GRID_SIZE/2.0)*GRID_SPACING; y += GRID_SPACING)
+		{
+			for(auto& e : central)
+			{
+				final.push_back(shiftHypothesis(e, tf::Vector3(x, y, 0)));
+			}
+		}
+	}
+
+	return final;
+}
+
+std::vector<Hypothesis> computeAllQuadHypotheses(Quadrilateral quad, std::vector<std::vector<cv::Point3d>> possibilities, cv::Mat K){
+
+	std::vector<Hypothesis> final, central;
+
+	central = computeAllCentralHypothesis(quad, possibilities, K); // get the central hypotheses
+
+	for(double x = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); x < ((double)GRID_SIZE/2.0)*GRID_SPACING; x += GRID_SPACING)
+	{
+		for(double y = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); y < ((double)GRID_SIZE/2.0)*GRID_SPACING; y += GRID_SPACING)
+		{
+			for(auto& e : central)
+			{
+				final.push_back(shiftHypothesis(e, tf::Vector3(x, y, 0)));
+			}
+		}
+	}
+
+	return final;
+}
+
+std::vector<Hypothesis> computeAllCentralHypothesis(Quadrilateral quad, std::vector<std::vector<cv::Point3d>> possibilities, cv::Mat K){
 	//setup 2d points
 	std::vector<cv::Point2d> img_pts;
 	for(auto e : quad.test_points)
@@ -167,12 +249,19 @@ std::vector<Hypothesis> computeAllCentralHypothesis(Quadrilateral quad, std::vec
 
 	std::vector<Hypothesis> hyps;
 
+	double error;
+
 	for(auto e : possibilities)
 	{
-		hyps.push_back(computeHypothesis(img_pts, e, K));
+		hyps.push_back(computeHypothesis(img_pts, e, K, error));
+		if(error > MAX_QUAD_ERROR)
+		{
+			hyps.pop_back();
+			ROS_DEBUG_STREAM("removed hypo with too high error");
+		}
 	}
 
 	return hyps;
-										}
+}
 
 #endif /* MANTIS_INCLUDE_MANTIS2_POSEESTIMATOR_H_ */

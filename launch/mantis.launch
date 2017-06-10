@@ -5,5 +5,8 @@
 	
 	<node pkg="tf" type="static_transform_publisher" name="cam_link_pub1" 
 			args="0 0 0 0 90 0 /bottom /base_link 100"/>
+			
+			
+	<node name="rviz" pkg="rviz" type="rviz" />
 	
 </launch>

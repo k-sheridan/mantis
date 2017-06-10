@@ -21,6 +21,8 @@
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/video.hpp"
 
+#include "geometry_msgs/PoseArray.h"
+
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/message_filter.h>
 #include <tf2_ros/transform_listener.h>
@@ -39,9 +41,13 @@
 
 #include "mantis2/PoseEstimator.h"
 
+ros::Publisher hypotheses_pub;
+
 Frame quad_detect_frame;
 
 std::vector<Hypothesis> hypotheses; // all of our best guesses as to where we are
+
+geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps);
 
 void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
@@ -49,15 +55,18 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	ROS_INFO("reading message");
 	cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
 
-	//frame1.K = get3x3FromVector(cam->K);
-	//frame1.D = cv::Mat(cam->D, false);
+	quad_detect_frame.K = get3x3FromVector(cam->K);
+	quad_detect_frame.D = cv::Mat(cam->D, false);
 	quad_detect_frame.cam_info_msg = *cam;
 	quad_detect_frame.img_msg = *img;
-	quad_detect_frame.img = temp;
 
 
 	//ROS_INFO_STREAM("intrinsic; " << frame0.K);
 	//ROS_INFO_STREAM("distortion; " << frame0.D);
+	//ROS_DEBUG_STREAM("image size: " << temp.rows << ", " << temp.cols);
+	//UNDISTORT
+	quad_detect_frame.img = temp;
+	//cv::fisheye::undistortImage(temp, quad_detect_frame.img, quad_detect_frame.K, quad_detect_frame.D, quad_detect_frame.K);
 
 	// detect quads in the image
 	int quadCount = detectQuadrilaterals(&quad_detect_frame);
@@ -66,25 +75,42 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
 
 	// determine our next guesses
-	//computeHypotheses(quad_detect_frame.quads, );
+	hypotheses = computeHypotheses(undistortQuadTestPoints(quad_detect_frame.quads, quad_detect_frame.K, quad_detect_frame.D), hypotheses, quad_detect_frame.K);
+
+	ROS_DEBUG_STREAM("Pre Test Hypotheses: " << hypotheses.size());
+
+	//Publish all hypotheses
+	hypotheses_pub.publish(formPoseArray(hypotheses));
 }
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "talker");
+	ros::init(argc, argv, "mantis");
 
 	ros::NodeHandle nh;
 
 	getParameters();
 
+	hypotheses_pub = nh.advertise<geometry_msgs::PoseArray>(HYPOTHESES_PUB_TOPIC, 1);
+
 	ros::Rate loop_rate(RATE);
 
 	image_transport::ImageTransport it(nh);
 
-	image_transport::CameraSubscriber quadDetectCameraSub = it.subscribeCamera(QUAD_DETECT_CAMERA_TOPIC, 1, quadDetection);
+	image_transport::CameraSubscriber quadDetectCameraSub = it.subscribeCamera(QUAD_DETECT_CAMERA_TOPIC, 2, quadDetection);
 
 	ros::spin();
 
 	return 0;
+}
+
+geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps)
+{
+	geometry_msgs::PoseArray poses;
+	for(auto& e : hyps){
+		poses.poses.push_back(e.toPoseMsg(quad_detect_frame.img_msg.header.stamp, WORLD_FRAME).pose);
+	}
+	poses.header.frame_id = WORLD_FRAME;
+	return poses;
 }
 
