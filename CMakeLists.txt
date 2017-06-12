@@ -55,19 +55,24 @@ catkin_package(
 add_executable(mantis_test test/unit_test.cpp)
 target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
 
+add_library(poseEstimation include/mantis3/CoPlanarPoseEstimator.cpp)
+target_link_libraries(poseEstimation ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-add_executable(mantis2 src/mantis2.cpp)
-target_link_libraries(mantis2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
+add_executable(mantis3 src/mantis3.cpp)
+target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation)
 
-add_library(montecarlo include/mantis/MonteCarlo.cpp)
-set_target_properties(montecarlo PROPERTIES LINKER_LANGUAGE CXX)
+#add_executable(mantis2 src/mantis2.cpp)
+#target_link_libraries(mantis2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
 
-add_executable(mantis_client src/mantis_client.cpp)
-add_executable(mantis_server src/mantis_server.cpp)
+#add_library(montecarlo include/mantis/MonteCarlo.cpp)
+#set_target_properties(montecarlo PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(montecarlo ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(mantis_client ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
-target_link_libraries(mantis_server ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} montecarlo)
+#add_executable(mantis_client src/mantis_client.cpp)
+#add_executable(mantis_server src/mantis_server.cpp)
 
-add_dependencies(mantis_client ${PROJECT_NAME}_generate_messages_cpp)
-add_dependencies(mantis_server ${PROJECT_NAME}_generate_messages_cpp)
+#target_link_libraries(montecarlo ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#target_link_libraries(mantis_client ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
+#target_link_libraries(mantis_server ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} montecarlo)
+
+#add_dependencies(mantis_client ${PROJECT_NAME}_generate_messages_cpp)
+#add_dependencies(mantis_server ${PROJECT_NAME}_generate_messages_cpp)

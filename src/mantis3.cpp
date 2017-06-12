@@ -33,15 +33,11 @@
 
 #include <eigen3/Eigen/Eigen>
 
-#include "mantis2/Mantis2Params.h"
+#include "mantis3/Mantis3Params.h"
 
-#include "mantis2/Mantis2Types.h"
+#include "mantis3/Mantis3Types.h"
 
-#include "mantis2/QuadDetection.h"
-
-#include "mantis2/PoseEstimator.h"
-
-#include "mantis2/Mantis2Error.h"
+#include "mantis3/QuadDetection.h"
 
 ros::Publisher hypotheses_pub;
 
@@ -53,60 +49,22 @@ geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps);
 
 void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
-
-	ROS_INFO("reading message");
 	cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
 
 	quad_detect_frame.K = get3x3FromVector(cam->K);
 	quad_detect_frame.D = cv::Mat(cam->D, false);
 	quad_detect_frame.cam_info_msg = *cam;
 	quad_detect_frame.img_msg = *img;
-
-
-	//ROS_INFO_STREAM("intrinsic; " << frame0.K);
-	//ROS_INFO_STREAM("distortion; " << frame0.D);
-	//ROS_DEBUG_STREAM("image size: " << temp.rows << ", " << temp.cols);
-	//UNDISTORT
 	quad_detect_frame.img = temp;
-	//cv::fisheye::undistortImage(temp, quad_detect_frame.img, quad_detect_frame.K, quad_detect_frame.D, quad_detect_frame.K);
 
 	// detect quads in the image
 	int quadCount = detectQuadrilaterals(&quad_detect_frame);
-
-	cv::GaussianBlur(quad_detect_frame.img, quad_detect_frame.img, cv::Size(0, 0), 15, 15);
 
 	ROS_DEBUG_STREAM(quadCount << " quads detected");
 	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
 
 	// determine our next guesses
-	hypotheses = computeHypotheses(undistortQuadTestPoints(quad_detect_frame.quads, quad_detect_frame.K, quad_detect_frame.D), hypotheses, quad_detect_frame.K);
 
-	ROS_DEBUG_STREAM("Pre Test Hypotheses: " << hypotheses.size());
-
-	hypotheses_pub.publish(formPoseArray(hypotheses));
-
-	/*evaluateHypotheses(hypotheses, quad_detect_frame); // evaluate all hypotheses
-
-	//hypotheses = getBestNHypotheses(100, hypotheses);
-	//hypotheses = getBestNHypotheses(1, hypotheses);
-
-	for(auto e : hypotheses)
-	{
-		visualizeHypothesis(quad_detect_frame.img.clone(), e, quad_detect_frame.K, quad_detect_frame.D);
-
-		//ros::Duration sleep(1);
-		//sleep.sleep();
-	}
-
-	hypotheses = getBestNHypotheses(1, hypotheses);
-
-	visualizeHypothesis(quad_detect_frame.img.clone(), hypotheses.front(), quad_detect_frame.K, quad_detect_frame.D);
-
-	ros::Duration sleep(1);
-	sleep.sleep();
-
-	//Publish all hypotheses
-	hypotheses_pub.publish(formPoseArray(hypotheses));*/
 }
 
 int main(int argc, char **argv)

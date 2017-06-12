@@ -1,5 +1,5 @@
 <launch>
-	<node name="mantis2" pkg="mantis" type="mantis2" output="screen">
+	<node name="mantis3" pkg="mantis" type="mantis3" output="screen">
 		<rosparam file="$(find mantis)/params/map.yaml"/>
 	</node>
 	

@@ -83,7 +83,7 @@ double computeImageError(Hypothesis hyp, cv::Mat img, cv::Mat K, cv::Mat D, std:
 	for(auto e : red_map)
 	{
 		bool in_frame = false;
-		error += computePointError(new_hyp, img, K, D, e, RED, in_frame);
+		error += computePointError(new_hyp, img, K, D, e, WHITE, in_frame);
 		if(in_frame){
 			projected++;
 		}
@@ -91,7 +91,7 @@ double computeImageError(Hypothesis hyp, cv::Mat img, cv::Mat K, cv::Mat D, std:
 	for(auto e : green_map)
 	{
 		bool in_frame = false;
-		error += computePointError(new_hyp, img, K, D, e, GREEN, in_frame);
+		error += computePointError(new_hyp, img, K, D, e, WHITE, in_frame);
 		if(in_frame){
 			projected++;
 		}

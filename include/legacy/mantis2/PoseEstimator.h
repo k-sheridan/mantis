@@ -98,7 +98,7 @@ Hypothesis computeHypothesis(std::vector<cv::Point2d> img_pts, std::vector<cv::P
 	 */
 
 	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << 0, 0, 0);
-	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0, -2);
+	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0, 1);
 
 	cv::solvePnP(object_pts, img_pts, K, cv::noArray(), rvec, tvec, true, POSE_SOLVE_METHOD);
 
@@ -107,13 +107,13 @@ Hypothesis computeHypothesis(std::vector<cv::Point2d> img_pts, std::vector<cv::P
 	hyp.setC2W(cvRvecTvec2tfTransform(rvec, tvec));
 	//hyp.setW2C(cvRvecTvec2tfTransform(rvec, tvec));
 
-	//if the pose is underground reevaluate with no initial guess
+	/*//if the pose is underground reevaluate with no initial guess
 	if(hyp.getPosition().z() < 0)
 	{
 		ROS_DEBUG("trying without initial guess");
 		cv::solvePnP(object_pts, img_pts, K, cv::noArray(), rvec, tvec, false, POSE_SOLVE_METHOD);
 		hyp.setC2W(cvRvecTvec2tfTransform(rvec, tvec));
-	}
+	}*/
 
 	error = computeHypothesisQuadReprojectionError(img_pts, object_pts, K, rvec, tvec);
 
@@ -174,7 +174,7 @@ std::vector<Hypothesis> computeAllCentralHypothesisFAST(Quadrilateral quad, std:
 	{
 		hyps.clear();
 
-		ROS_DEBUG_STREAM("error too high or under ground returned vector with size " << hyps.size());
+		ROS_DEBUG_STREAM("error too high returned vector with size " << hyps.size());
 		return hyps;
 	}
 
@@ -215,7 +215,10 @@ std::vector<Hypothesis> computeAllQuadHypothesesFAST(Quadrilateral quad, std::ve
 		return final;
 	}
 
-	for(double x = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); x < ((double)GRID_SIZE/2.0)*GRID_SPACING; x += GRID_SPACING)
+	//testing
+	final.push_back(central.at(0));
+
+	/*for(double x = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); x < ((double)GRID_SIZE/2.0)*GRID_SPACING; x += GRID_SPACING)
 	{
 		for(double y = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); y < ((double)GRID_SIZE/2.0)*GRID_SPACING; y += GRID_SPACING)
 		{
@@ -224,7 +227,7 @@ std::vector<Hypothesis> computeAllQuadHypothesesFAST(Quadrilateral quad, std::ve
 				final.push_back(shiftHypothesis(e, tf::Vector3(x, y, 0)));
 			}
 		}
-	}
+	}*/
 
 	return final;
 }
