@@ -12,6 +12,14 @@
 #include <iosfwd>
 #include <ostream>
 
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/calib3d.hpp>
+#include <opencv2/features2d.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/xfeatures2d.hpp"
+#include "opencv2/video.hpp"
+
 /*
  * a guess about our pose
  */
@@ -108,6 +116,42 @@ public:
 	cv::Point2d point2Pixel(tf::Vector3 pt, cv::Mat_<float> K)
 	{
 		return cv::Point2d(K(0)*(pt.x()/pt.z()) + K(2), K(4)*(pt.y()/pt.z()) + K(5));
+	}
+
+	cv::Point2d distortNormalPixel(cv::Point2d px, cv::Mat K, cv::Mat D)
+	{
+		std::vector<cv::Point2d> undist, dist;
+		undist.push_back(px);
+		cv::fisheye::distortPoints(undist, dist, K, D);
+		return dist.front();
+	}
+
+	cv::Point2d distortPixel(tf::Vector3 px, cv::Mat K, cv::Mat D)
+	{
+		return distortNormalPixel(normalizePoint(px), K, D);
+	}
+
+	inline tf::Transform rotAndtvec2tf(cv::Mat_<double> rot, cv::Mat_<double> tvec)
+	{
+		tf::Transform trans;
+
+		trans.getBasis().setValue(rot(0), rot(1), rot(2), rot(3), rot(4), rot(5), rot(6), rot(7), rot(8));
+		trans.setOrigin(tf::Vector3(tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2)));
+
+		return trans;
+	}
+
+	inline tf::Transform rvecAndtvec2tf(cv::Mat_<double> rvec, cv::Mat_<double> tvec)
+	{
+		tf::Transform trans;
+
+		cv::Mat_<double> rot;
+		cv::Rodrigues(rvec, rot);
+
+		trans.getBasis().setValue(rot(0), rot(1), rot(2), rot(3), rot(4), rot(5), rot(6), rot(7), rot(8));
+		trans.setOrigin(tf::Vector3(tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2)));
+
+		return trans;
 	}
 
 };

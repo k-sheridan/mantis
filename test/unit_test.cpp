@@ -35,6 +35,8 @@
 
 #include "mantis3/QuadDetection.h"
 
+#include "mantis3/CoPlanarPoseEstimator.h"
+
 
 int main(int argc, char **argv)
 {
@@ -50,18 +52,75 @@ int main(int argc, char **argv)
 
 	cv::Mat test = cv::Mat::zeros(1024, 1280, CV_8UC3);
 
+	std::vector<tf::Vector3> object_tf;
+	object_tf.push_back(tf::Vector3(0.155, 0.155, 0));
+	object_tf.push_back(tf::Vector3(-0.155, 0.155, 0));
+	object_tf.push_back(tf::Vector3(-0.155, -0.155, 0));
+	object_tf.push_back(tf::Vector3(0.155, -0.155, 0));
+
+	std::vector<cv::Point3d> object_cv;
+	object_cv.push_back(cv::Point3d(0.155, 0.155, 0));
+	object_cv.push_back(cv::Point3d(-0.155, 0.155, 0));
+	object_cv.push_back(cv::Point3d(-0.155, -0.155, 0));
+	object_cv.push_back(cv::Point3d(0.155, -0.155, 0));
+
+	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << -2, CV_PI, 0.1);
+	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0.7, 1);
+	cv::Mat_<double> rot;
+	cv::Rodrigues(rvec, rot);
+
+	std::vector<cv::Point2d> img_pts;
+
+	Hypothesis actual_hyp;
+	actual_hyp.setC2W(actual_hyp.rotAndtvec2tf(rot, tvec));
+
+	ROS_DEBUG_STREAM("actual rot: " << rot);
+	ROS_DEBUG_STREAM("actual tvec: " << tvec);
+
+	ROS_DEBUG_STREAM("actual position: " << actual_hyp.getPosition().x() << ", " << actual_hyp.getPosition().y() << ", " << actual_hyp.getPosition().z());
+
+	img_pts.push_back(actual_hyp.distortPixel(actual_hyp.projectPoint(object_tf.at(0)), K, D));
+	img_pts.push_back(actual_hyp.distortPixel(actual_hyp.projectPoint(object_tf.at(1)), K, D));
+	img_pts.push_back(actual_hyp.distortPixel(actual_hyp.projectPoint(object_tf.at(2)), K, D));
+	img_pts.push_back(actual_hyp.distortPixel(actual_hyp.projectPoint(object_tf.at(3)), K, D));
+
+	cv::drawMarker(test, img_pts.at(0), cv::Scalar(255, 255, 255));
+	cv::drawMarker(test, img_pts.at(1), cv::Scalar(255, 0, 0));
+	cv::drawMarker(test, img_pts.at(2), cv::Scalar(0, 255, 0));
+	cv::drawMarker(test, img_pts.at(3), cv::Scalar(0, 0, 255));
+
+	cv::imshow("unit_test", test);
+	cv::waitKey(30);
+
 	ros::Duration errorSleep(1);
-	ROS_DEBUG("TESTING GRID PROJECTION UNDISTORTED");
 	errorSleep.sleep();
 
+	ROS_DEBUG("SOLVING FOR POSE");
 
+	std::vector<cv::Point2d> img_pts_normal;
+
+	cv::RNG rng(1);
+
+	double noiseLevel = 0.01;
+
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(0)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(1)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(2)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(3)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
+
+	CoPlanarPoseEstimator pe;
+
+	Hypothesis estimate;
+	estimate.setC2W(pe.estimatePose(img_pts_normal, object_tf));
+
+	ROS_DEBUG_STREAM("estimate position: " << estimate.getPosition().x() << ", " << estimate.getPosition().y() << ", " << estimate.getPosition().z());
 
 
 
 
 	//loop till end
 	while(ros::ok()){
-		cv::imshow("test", test);
+		cv::imshow("unit_test", test);
 		cv::waitKey(30);
 	}
 }

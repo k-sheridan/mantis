@@ -52,11 +52,17 @@ catkin_package(
    DEPENDS opencv
 )
 
-add_executable(mantis_test test/unit_test.cpp)
-target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})
+add_library(rpoly include/mantis3/RobustPlanarPose/Rpoly.cpp)
+target_link_libraries(rpoly ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_library(rpp include/mantis3/RobustPlanarPose/RPP.cpp)
+target_link_libraries(rpp ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} rpoly)
 
 add_library(poseEstimation include/mantis3/CoPlanarPoseEstimator.cpp)
-target_link_libraries(poseEstimation ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(poseEstimation ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} rpp)
+
+add_executable(mantis_test test/unit_test.cpp)
+target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation)
 
 add_executable(mantis3 src/mantis3.cpp)
 target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation)

@@ -20,5 +20,7 @@ std::vector<Hypothesis> generateHypotheses(std::vector<Quadrilateral> quads, Man
 	}
 }
 
+Hypothesis computeCentralHypothesis
+
 
 #endif /* MANTIS_INCLUDE_MANTIS3_HYPOTHESISGENERATION_H_ */
