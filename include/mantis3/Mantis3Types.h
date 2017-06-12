@@ -87,7 +87,9 @@ public:
 	 */
 	tf::Vector3 projectPoint(tf::Vector3 in)
 	{
-		return c2w * in;
+		tf::Vector3 reproj = c2w * in;
+		ROS_DEBUG_COND(reproj.z() < 0, "WARNING! POINT IS BEHIND CAMERA");
+		return reproj;
 	}
 
 	/*
@@ -97,6 +99,8 @@ public:
 	cv::Point2d projectPoint(tf::Vector3 in, cv::Mat_<float> K)
 	{
 		tf::Vector3 reproj = projectPoint(in);
+
+		//ROS_DEBUG_COND(reproj.z() < 0, "WARNING! POINT IS BEHIND CAMERA");
 
 		return point2Pixel(reproj, K);
 	}

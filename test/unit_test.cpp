@@ -37,6 +37,8 @@
 
 #include "mantis3/CoPlanarPoseEstimator.h"
 
+#include "mantis3/HypothesisEvaluation.h"
+
 
 int main(int argc, char **argv)
 {
@@ -64,7 +66,7 @@ int main(int argc, char **argv)
 	object_cv.push_back(cv::Point3d(-0.155, -0.155, 0));
 	object_cv.push_back(cv::Point3d(0.155, -0.155, 0));
 
-	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << -2, CV_PI, 0.1);
+	cv::Mat_<double> rvec = (cv::Mat_<double>(3, 1) << 0.8, CV_PI, 0.6);
 	cv::Mat_<double> tvec = (cv::Mat_<double>(3, 1) << 0, 0.7, 1);
 	cv::Mat_<double> rot;
 	cv::Rodrigues(rvec, rot);
@@ -89,7 +91,7 @@ int main(int argc, char **argv)
 	cv::drawMarker(test, img_pts.at(2), cv::Scalar(0, 255, 0));
 	cv::drawMarker(test, img_pts.at(3), cv::Scalar(0, 0, 255));
 
-	cv::imshow("unit_test", test);
+	cv::imshow("test", test);
 	cv::waitKey(30);
 
 	ros::Duration errorSleep(1);
@@ -99,14 +101,14 @@ int main(int argc, char **argv)
 
 	std::vector<cv::Point2d> img_pts_normal;
 
-	cv::RNG rng(1);
+	cv::RNG rng(10);
 
 	double noiseLevel = 0.01;
 
-	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(0)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
-	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(1)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
-	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(2)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
-	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(3)) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0)));
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(0) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0))));
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(1) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0))));
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(2) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0))));
+	img_pts_normal.push_back(actual_hyp.normalizePoint(actual_hyp.projectPoint(object_tf.at(3) + tf::Vector3(rng.gaussian(noiseLevel), rng.gaussian(noiseLevel), 0))));
 
 	CoPlanarPoseEstimator pe;
 
@@ -115,12 +117,18 @@ int main(int argc, char **argv)
 
 	ROS_DEBUG_STREAM("estimate position: " << estimate.getPosition().x() << ", " << estimate.getPosition().y() << ", " << estimate.getPosition().z());
 
+	visualizeHypothesis(test, actual_hyp, K, D);
+
+	ros::Duration sleep1(1);
+	sleep1.sleep();
+
+	visualizeHypothesis(test, estimate, K, D);
 
 
 
 	//loop till end
 	while(ros::ok()){
-		cv::imshow("unit_test", test);
+		cv::imshow("test", test);
 		cv::waitKey(30);
 	}
 }
