@@ -32,6 +32,11 @@ cv::Mat final;
 #define BASE_FRAME "base_link"
 #define WORLD_FRAME "world"
 
+
+#define WHITE cv::Vec3i(255, 255, 255)
+#define RED cv::Vec3i(113, 48, 32)
+#define GREEN cv::Vec3i(50, 100, 37)
+
 //params
 double GRID_SPACING;
 int FAST_THRESHOLD;
@@ -40,6 +45,12 @@ int RATE;
 int POLYGON_EPSILON;
 std::string QUAD_DETECT_CAMERA_TOPIC;
 double SEARCH_RADIUS_MULTIPLIER;
+
+std::vector<tf::Vector3> white_map;
+std::vector<tf::Vector3> red_map;
+std::vector<tf::Vector3> green_map;
+
+tf::TransformListener* tf_listener;
 
 std::vector<cv::Point3d> gridSquare;
 
@@ -128,6 +139,25 @@ void getParameters()
 	//WHITE_BGR = WHITE_INIT;
 	//RED_BGR = RED_INIT;
 	//GREEN_BGR = GREEN_INIT;
+	std::string whiteTemp;
+	ros::param::param<std::string>("~whiteMap", whiteTemp, "");
+	ROS_DEBUG_STREAM(whiteTemp);
+	white_map = parseCoordinatesFromString(whiteTemp);
+	ROS_DEBUG_STREAM("size of white map "<< white_map.size());
+
+	std::string redTemp;
+	ros::param::param<std::string>("~redMap", redTemp, "");
+	ROS_DEBUG_STREAM(redTemp);
+	red_map = parseCoordinatesFromString(redTemp);
+	ROS_DEBUG_STREAM("size of red map"<< red_map.size());
+
+
+	std::string greenTemp;
+	ros::param::param<std::string>("~greenMap", greenTemp, "");
+	ROS_DEBUG_STREAM(greenTemp);
+	green_map = parseCoordinatesFromString(greenTemp);
+	ROS_DEBUG_STREAM("size of greenMap"<< green_map.size());
+
 }
 
 #endif /* MANTIS_INCLUDE_MANTIS2_MANTIS2PARAMS_H_ */

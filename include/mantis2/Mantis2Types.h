@@ -19,7 +19,7 @@ private:
 	tf::Transform c2w, w2c; // cam to/from world transform
 	tf::Quaternion q;
 public:
-	double likelihood;
+	double error;
 	int observations;
 
 	geometry_msgs::PoseStamped toPoseMsg(ros::Time stamp, std::string frame)
@@ -83,12 +83,30 @@ public:
 
 	/*
 	 * project 3d point to pixel point from world
+	 * returns -1, -1 if behind camera
 	 */
 	cv::Point2d projectPoint(tf::Vector3 in, cv::Mat_<float> K)
 	{
 		tf::Vector3 reproj = projectPoint(in);
 
-		return cv::Point2d(K(0)*(reproj.x()/reproj.z()) + K(2), K(4)*(reproj.y()/reproj.z()) + K(5));
+		return point2Pixel(reproj, K);
+	}
+
+	cv::Point2d projectPointNormal(tf::Vector3 in)
+	{
+		tf::Vector3 reproj = projectPoint(in);
+
+		return normalizePoint(reproj);
+	}
+
+	cv::Point2d normalizePoint(tf::Vector3 pt)
+	{
+		return cv::Point2d((pt.x()/pt.z()), (pt.y()/pt.z()));
+	}
+
+	cv::Point2d point2Pixel(tf::Vector3 pt, cv::Mat_<float> K)
+	{
+		return cv::Point2d(K(0)*(pt.x()/pt.z()) + K(2), K(4)*(pt.y()/pt.z()) + K(5));
 	}
 
 };

@@ -41,6 +41,8 @@
 
 #include "mantis2/PoseEstimator.h"
 
+#include "mantis2/Mantis2Error.h"
+
 ros::Publisher hypotheses_pub;
 
 Frame quad_detect_frame;
@@ -71,6 +73,8 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	// detect quads in the image
 	int quadCount = detectQuadrilaterals(&quad_detect_frame);
 
+	cv::GaussianBlur(quad_detect_frame.img, quad_detect_frame.img, cv::Size(0, 0), 9, 9);
+
 	ROS_DEBUG_STREAM(quadCount << " quads detected");
 	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
 
@@ -79,6 +83,28 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 
 	ROS_DEBUG_STREAM("Pre Test Hypotheses: " << hypotheses.size());
 
+	hypotheses_pub.publish(formPoseArray(hypotheses));
+
+	evaluateHypotheses(hypotheses, quad_detect_frame); // evaluate all hypotheses
+
+	hypotheses = getBestNHypotheses(100, hypotheses);
+	//hypotheses = getBestNHypotheses(1, hypotheses);
+
+	for(auto e : hypotheses)
+	{
+		visualizeHypothesis(quad_detect_frame.img.clone(), e, quad_detect_frame.K, quad_detect_frame.D);
+
+		//ros::Duration sleep(1);
+		//sleep.sleep();
+	}
+
+	hypotheses = getBestNHypotheses(1, hypotheses);
+
+	visualizeHypothesis(quad_detect_frame.img.clone(), hypotheses.front(), quad_detect_frame.K, quad_detect_frame.D);
+
+	ros::Duration sleep(1);
+	sleep.sleep();
+
 	//Publish all hypotheses
 	hypotheses_pub.publish(formPoseArray(hypotheses));
 }
@@ -86,6 +112,8 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "mantis");
+
+	tf_listener = new tf::TransformListener;
 
 	ros::NodeHandle nh;
 

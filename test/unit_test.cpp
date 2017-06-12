@@ -37,6 +37,8 @@
 
 #include "mantis2/PoseEstimator.h"
 
+#include "mantis2/Mantis2Error.h"
+
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "unit_test");
@@ -189,6 +191,23 @@ int main(int argc, char **argv)
 
 
 	}*/
+
+	//test the error functions
+
+	//load map
+	getParameters();
+
+	cv::Mat_<float> D = (cv::Mat_<float>(4, 1) << 0.0029509200248867273, -0.009944040328264236, 0.005587350111454725, -0.00205406011082232);
+	K = (cv::Mat_<float>(3, 3) << 323.1511535644531, 0.0, 642.658203125, 0.0, 322.78955078125, 501.5538330078125, 0.0, 0.0, 1.0);
+
+	cv::Mat blank = cv::Mat::zeros(1024, 1280, CV_8UC3);
+
+	ros::Duration errorSleep(1);
+	ROS_DEBUG("TESTING GRID PROJECTION UNDISTORTED");
+	errorSleep.sleep();
+
+	visualizeHypothesis(blank.clone(), hyp2, K, D);
+
 
 	//loop till end
 	while(ros::ok()){
