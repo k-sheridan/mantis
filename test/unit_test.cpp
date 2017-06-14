@@ -27,6 +27,8 @@
 #include <tf/tf.h>
 #include <tf/tfMessage.h>
 
+#include "geometry_msgs/PoseArray.h"
+
 #include <eigen3/Eigen/Eigen>
 
 #include "mantis3/Mantis3Params.h"
@@ -37,8 +39,47 @@
 
 #include "mantis3/CoPlanarPoseEstimator.h"
 
+#include "mantis3/HypothesisGeneration.h"
+
 #include "mantis3/HypothesisEvaluation.h"
 
+ros::Publisher hypotheses_pub;
+
+Frame quad_detect_frame;
+
+
+
+geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps)
+{
+	geometry_msgs::PoseArray poses;
+	for(auto& e : hyps){
+		poses.poses.push_back(e.toPoseMsg(quad_detect_frame.img.stamp, WORLD_FRAME).pose);
+	}
+	poses.header.frame_id = WORLD_FRAME;
+	return poses;
+}
+
+void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
+{
+	cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
+
+	quad_detect_frame.img.K = get3x3FromVector(cam->K);
+	quad_detect_frame.img.D = cv::Mat(cam->D, false);
+	quad_detect_frame.img.img = temp;
+	quad_detect_frame.img.frame_id = img->header.frame_id;
+
+	// detect quads in the image
+	int quadCount = detectQuadrilaterals(&quad_detect_frame);
+
+	ROS_DEBUG_STREAM(quadCount << " quads detected");
+	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
+
+	// determine our next guesses
+	std::vector<Hypothesis> hyps = generateHypotheses(undistortAndNormalizeQuadTestPoints(quad_detect_frame.quads, quad_detect_frame.img.K, quad_detect_frame.img.D), quad_detect_frame.img);
+
+	hypotheses_pub.publish(formPoseArray(hyps));
+
+}
 
 int main(int argc, char **argv)
 {
@@ -124,13 +165,20 @@ int main(int argc, char **argv)
 
 	visualizeHypothesis(test, estimate, K, D);
 
+	ros::Duration sleep2(1);
+	sleep2.sleep();
+
+	ROS_DEBUG("beggining dataset");
+
+	hypotheses_pub = nh.advertise<geometry_msgs::PoseArray>(HYPOTHESES_PUB_TOPIC, 1);
+
+	image_transport::ImageTransport it(nh);
+
+	image_transport::CameraSubscriber quadDetectCameraSub = it.subscribeCamera(QUAD_DETECT_CAMERA_TOPIC, 2, quadDetection);
 
 
-	//loop till end
-	while(ros::ok()){
-		cv::imshow("test", test);
-		cv::waitKey(30);
-	}
+	ros::spin();
+
 }
 
 

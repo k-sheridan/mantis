@@ -12,6 +12,7 @@ CoPlanarPoseEstimator::CoPlanarPoseEstimator() {
 
 }
 
+
 tf::Transform CoPlanarPoseEstimator::estimatePose(std::vector<cv::Point2d> img_pts, std::vector<tf::Vector3> obj_pts)
 {
 	ROS_ASSERT(img_pts.size() == obj_pts.size());

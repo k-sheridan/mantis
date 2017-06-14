@@ -37,6 +37,8 @@ cv::Mat final;
 #define RED cv::Vec3i(113, 48, 32)
 #define GREEN cv::Vec3i(50, 100, 37)
 
+#define COLOR_SEARCH_AREA cv::Size(10, 10)
+
 //params
 double GRID_SPACING;
 int FAST_THRESHOLD;
@@ -52,39 +54,38 @@ std::vector<tf::Vector3> green_map;
 
 tf::TransformListener* tf_listener;
 
-std::vector<cv::Point3d> gridSquare;
+std::vector<tf::Vector3> gridSquare;
 
-std::vector<std::vector<cv::Point3d>> gridSquarePossibilities;
+std::vector<std::vector<tf::Vector3>> gridSquarePossibilities;
 
-std::vector<cv::Point3d> generateGridSquare(double spacing){
-	std::vector<cv::Point3d> square;
-	square.push_back(cv::Point3d(spacing/2, spacing/2, 0));
-	square.push_back(cv::Point3d(-spacing/2, spacing/2, 0));
-	square.push_back(cv::Point3d(-spacing/2, -spacing/2, 0));
-	square.push_back(cv::Point3d(spacing/2, -spacing/2, 0));
+std::vector<tf::Vector3> generateGridSquare(double spacing){
+	std::vector<tf::Vector3> square;
+	square.push_back(tf::Vector3(spacing/2, spacing/2, 0));
+	square.push_back(tf::Vector3(-spacing/2, spacing/2, 0));
+	square.push_back(tf::Vector3(-spacing/2, -spacing/2, 0));
+	square.push_back(tf::Vector3(spacing/2, -spacing/2, 0));
 	return square;
 }
 
-std::vector<std::vector<cv::Point3d>> generatePossibleOrientations(double grid_spacing){
-	std::vector<std::vector<cv::Point3d>> possibilities; // possibility possibilities
-	std::vector<cv::Point3d> possibility;
-	cv::Point3d temp;
+std::vector<std::vector<tf::Vector3>> generatePossibleOrientations(double grid_spacing){
+	std::vector<std::vector<tf::Vector3>> possibilities; // possibility possibilities
+	std::vector<tf::Vector3> possibility;
+	tf::Vector3 temp;
 
-	possibility.push_back(cv::Point3d(grid_spacing/2, grid_spacing/2, 0));
-	possibility.push_back(cv::Point3d(-grid_spacing/2, grid_spacing/2, 0));
-	possibility.push_back(cv::Point3d(-grid_spacing/2, -grid_spacing/2, 0));
-	possibility.push_back(cv::Point3d(grid_spacing/2, -grid_spacing/2, 0));
+	possibility.push_back(tf::Vector3(grid_spacing/2, grid_spacing/2, 0));
+	possibility.push_back(tf::Vector3(-grid_spacing/2, grid_spacing/2, 0));
+	possibility.push_back(tf::Vector3(-grid_spacing/2, -grid_spacing/2, 0));
+	possibility.push_back(tf::Vector3(grid_spacing/2, -grid_spacing/2, 0));
 
 	possibilities.push_back(possibility);
 
-	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
-	possibilities.push_back(possibility);
+	std::vector<tf::Vector3> possibility2;
+	possibility2.push_back(tf::Vector3(grid_spacing/2, -grid_spacing/2, 0));
+	possibility2.push_back(tf::Vector3(-grid_spacing/2, -grid_spacing/2, 0));
+	possibility2.push_back(tf::Vector3(-grid_spacing/2, grid_spacing/2, 0));
+	possibility2.push_back(tf::Vector3(grid_spacing/2, grid_spacing/2, 0));
 
-	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
-	possibilities.push_back(possibility);
-
-	std::rotate(possibility.rbegin(), possibility.rbegin() + 1, possibility.rend());
-	possibilities.push_back(possibility);
+	possibilities.push_back(possibility2);
 
 	return possibilities;
 }

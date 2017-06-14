@@ -8,6 +8,7 @@
 #ifndef MANTIS_INCLUDE_MANTIS_QUADDETECTION_H_
 #define MANTIS_INCLUDE_MANTIS_QUADDETECTION_H_
 
+#include "Mantis3Types.h"
 
 struct Quadrilateral
 {
@@ -66,9 +67,7 @@ struct Quadrilateral
 
 struct Frame
 {
-	cv::Mat img, K, D;
-	sensor_msgs::Image img_msg;
-	sensor_msgs::CameraInfo cam_info_msg;
+	MantisImage img;
 	cv::Mat canny;
 	std::vector<std::vector<cv::Point> > contours;
 	std::vector<Quadrilateral> quads;
@@ -194,7 +193,7 @@ int detectQuadrilaterals(Frame* f)
 
 	cv::Mat mono;
 	//cv::fisheye::undistortImage(f->img, f->img, f->K, f->D, f->K);
-	cv::cvtColor(f->img, mono, CV_BGR2GRAY);
+	cv::cvtColor(f->img.img, mono, CV_BGR2GRAY);
 
 	cv::GaussianBlur(mono, mono, cv::Size(3, 3), 3, 3);
 	cv::Canny(mono, f->canny, CANNY_HYSTERESIS, 3 * CANNY_HYSTERESIS, 3);
@@ -216,7 +215,7 @@ int detectQuadrilaterals(Frame* f)
 	removeDuplicateQuads(f->quads);
 
 #if SUPER_DEBUG
-	final = f->img.clone();
+	final = f->img.img.clone();
 	/*
 	cv::Mat temp;
 	f->img.copyTo(temp);
@@ -266,7 +265,7 @@ int detectQuadrilaterals(Frame* f)
 	}
 
 	imgReady = true;
-	cv::imshow("debug", final);
+	cv::imshow("test", final);
 	cv::waitKey(30);
 #endif
 
@@ -274,11 +273,23 @@ int detectQuadrilaterals(Frame* f)
 
 }
 
+std::vector<Quadrilateral> undistortAndNormalizeQuadTestPoints(std::vector<Quadrilateral> quads, cv::Mat K, cv::Mat D){
+	for(auto& e : quads)
+	{
+		//ROS_DEBUG_STREAM("before " << e.test_points.back());
+		//cv::fisheye::undistortPoints(e.test_points, e.test_points, K, D, cv::noArray(), K);
+		cv::fisheye::undistortPoints(e.test_points, e.test_points, K, D);
+		//ROS_DEBUG_STREAM("after " << e.test_points.back());
+	}
+	return quads;
+}
+
 std::vector<Quadrilateral> undistortQuadTestPoints(std::vector<Quadrilateral> quads, cv::Mat K, cv::Mat D){
 	for(auto& e : quads)
 	{
 		//ROS_DEBUG_STREAM("before " << e.test_points.back());
 		cv::fisheye::undistortPoints(e.test_points, e.test_points, K, D, cv::noArray(), K);
+		//cv::fisheye::undistortPoints(e.test_points, e.test_points, K, D);
 		//ROS_DEBUG_STREAM("after " << e.test_points.back());
 	}
 	return quads;

@@ -88,7 +88,7 @@ public:
 	tf::Vector3 projectPoint(tf::Vector3 in)
 	{
 		tf::Vector3 reproj = c2w * in;
-		ROS_DEBUG_COND(reproj.z() < 0, "WARNING! POINT IS BEHIND CAMERA");
+		//ROS_DEBUG_COND(reproj.z() < 0, "WARNING! POINT IS BEHIND CAMERA");
 		return reproj;
 	}
 
@@ -171,17 +171,23 @@ struct MantisImage{
 	cv::Mat img;
 	cv::Mat K;
 	cv::Mat D;
+	std::string frame_id;
+	ros::Time stamp;
 
 	MantisImage(){
 
 	}
 
-	MantisImage(cv::Mat img, cv::Mat K, cv::Mat D)
+	MantisImage(cv::Mat img, cv::Mat K, cv::Mat D, std::string frame, ros::Time t)
 	{
 		this->K = K;
 		this->D = D;
 		this->img = img;
+		frame_id = frame;
+		stamp = t;
 	}
+
+	operator cv::Mat() const {return img;} // conversion function
 };
 
 

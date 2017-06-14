@@ -49,7 +49,7 @@ geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps);
 
 void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
-	cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
+	/*cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
 
 	quad_detect_frame.K = get3x3FromVector(cam->K);
 	quad_detect_frame.D = cv::Mat(cam->D, false);
@@ -63,7 +63,7 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	ROS_DEBUG_STREAM(quadCount << " quads detected");
 	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
 
-	// determine our next guesses
+	// determine our next guesses*/
 
 }
 
@@ -94,7 +94,7 @@ geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps)
 {
 	geometry_msgs::PoseArray poses;
 	for(auto& e : hyps){
-		poses.poses.push_back(e.toPoseMsg(quad_detect_frame.img_msg.header.stamp, WORLD_FRAME).pose);
+		poses.poses.push_back(e.toPoseMsg(quad_detect_frame.img.stamp, WORLD_FRAME).pose);
 	}
 	poses.header.frame_id = WORLD_FRAME;
 	return poses;
