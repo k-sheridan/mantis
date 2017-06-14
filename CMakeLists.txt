@@ -42,6 +42,7 @@ generate_messages(
 	std_msgs
 	geometry_msgs
 	sensor_msgs
+	
 )
 
 catkin_package(
@@ -51,6 +52,9 @@ catkin_package(
 #  DEPENDS system_lib
    DEPENDS opencv
 )
+
+add_library(clusterer include/mantis3/PoseClusterer.cpp)
+target_link_libraries(clusterer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_library(rpoly include/mantis3/RobustPlanarPose/Rpoly.cpp)
 target_link_libraries(rpoly ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
@@ -62,10 +66,10 @@ add_library(poseEstimation include/mantis3/CoPlanarPoseEstimator.cpp)
 target_link_libraries(poseEstimation ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} rpp)
 
 add_executable(mantis_test test/unit_test.cpp)
-target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation)
+target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer)
 
 add_executable(mantis3 src/mantis3.cpp)
-target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation)
+target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer)
 
 #add_executable(mantis2 src/mantis2.cpp)
 #target_link_libraries(mantis2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})

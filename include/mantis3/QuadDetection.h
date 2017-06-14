@@ -33,7 +33,7 @@ struct Quadrilateral
 	}
 
 	std::vector<cv::Point2d> computeTestPoints()
-																			{
+																									{
 		std::vector<cv::Point2d> test;
 		for(auto e : contour)
 		{
@@ -41,7 +41,7 @@ struct Quadrilateral
 			test.push_back(pt);
 		}
 		return test;
-																			}
+																									}
 
 	Quadrilateral(std::vector<cv::Point> _contour)
 	{
@@ -115,14 +115,19 @@ void convert2Binary(cv::Mat& img){
 int removeDuplicateQuads(std::vector<Quadrilateral>& quads)
 {
 	std::vector<Quadrilateral> keepers;
-	std::vector<cv::Point2f> original_pts;
-	for(auto& e : quads)
-	{
-		original_pts.push_back(e.center);
+	//std::vector<cv::Point2f> original_pts;
+	cv::Mat_<float> features(0,2);
+
+	for(auto && quad : quads) {
+
+		//Fill matrix
+		cv::Mat row = (cv::Mat_<float>(1, 2) << quad.center.x, quad.center.y);
+		features.push_back(row);
 	}
 
-	cv::flann::KDTreeIndexParams indexParams;
-	cv::flann::Index kdtree(cv::Mat(original_pts).reshape(1), indexParams);
+	//ROS_DEBUG_STREAM("centers: " << features);
+
+	cv::flann::Index kdtree(features, cv::flann::KDTreeIndexParams(1));
 
 	int neighbors = 0;
 
@@ -130,14 +135,22 @@ int removeDuplicateQuads(std::vector<Quadrilateral>& quads)
 	{
 		if(!e.neighbor)
 		{
-			std::vector<float> query;
-			query.push_back(e.center.x);
-			query.push_back(e.center.y);
+			cv::Mat query = (cv::Mat_<float>(1, 2) << e.center.x, e.center.y);
 
 			std::vector<int> indices;
 			std::vector<float> dists;
 
 			kdtree.radiusSearch(query, indices, dists, SEARCH_RADIUS_MULTIPLIER * e.side_length, 4);
+
+			/*for(auto e : indices)
+			{
+				ROS_DEBUG_STREAM("index: " << e);
+			}
+			for(auto e : dists)
+			{
+				ROS_DEBUG_STREAM("distance: " << e);
+			}*/
+
 
 			for(std::vector<int>::iterator it = indices.begin() + 1; it != indices.end(); it++)
 			{

@@ -43,11 +43,24 @@
 
 #include "mantis3/HypothesisEvaluation.h"
 
+#include "mantis3/PoseClusterer.h"
+
 ros::Publisher hypotheses_pub;
 
 Frame quad_detect_frame;
 
 
+
+std::vector<tf::Quaternion> getQuatVec(std::vector<Hypothesis> hyps){
+	std::vector<tf::Quaternion> quatVec;
+
+	for(auto e : hyps)
+	{
+		quatVec.push_back(e.getQuaternion());
+	}
+
+	return quatVec;
+}
 
 geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps)
 {
@@ -79,14 +92,15 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	// determine our next guesses
 	std::vector<Hypothesis> hyps = generateHypotheses(undistortAndNormalizeQuadTestPoints(quad_detect_frame.quads, quad_detect_frame.img.K, quad_detect_frame.img.D), quad_detect_frame.img);
 
-	evaluateHypotheses(hyps, quad_detect_frame.img);
-
-	hyps = getBestNHypotheses(400, hyps);
-
-	visualizeHypothesis(quad_detect_frame.img.img, hyps.front(), quad_detect_frame.img.K, quad_detect_frame.img.D);
+	PoseClusterer pc(getQuatVec(hyps));
+	hyps = pc.clusterByAngle(MAX_ANGLE_DIFFERENCE, quadCount).removeSmallClusters().convert2Hypotheses(hyps, false);
 
 	//ros::Duration sleep(1);
 	//sleep.sleep();
+
+	hyps = getBestNHypotheses(10, hyps);
+
+	visualizeHypothesis(quad_detect_frame.img.img, hyps.front(), quad_detect_frame.img.K, quad_detect_frame.img.D);
 
 	hypotheses_pub.publish(formPoseArray(hyps));
 

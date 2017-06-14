@@ -25,6 +25,8 @@ cv::Mat final;
 
 #define MAX_QUAD_ERROR 0.6
 
+#define MAX_ANGLE_DIFFERENCE 0.1
+
 #define POSE_SOLVE_METHOD cv::SOLVEPNP_ITERATIVE
 
 #define HYPOTHESES_PUB_TOPIC "mantis/hypotheses"
