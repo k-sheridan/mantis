@@ -23,7 +23,7 @@ cv::Mat final;
 #define GRID_SIZE 9
 #define DEF_GRID_SPACING 0.32
 
-#define MAX_QUAD_ERROR 12.0
+#define MAX_QUAD_ERROR 0.6
 
 #define POSE_SOLVE_METHOD cv::SOLVEPNP_ITERATIVE
 

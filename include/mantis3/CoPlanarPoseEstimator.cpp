@@ -13,7 +13,7 @@ CoPlanarPoseEstimator::CoPlanarPoseEstimator() {
 }
 
 
-tf::Transform CoPlanarPoseEstimator::estimatePose(std::vector<cv::Point2d> img_pts, std::vector<tf::Vector3> obj_pts)
+tf::Transform CoPlanarPoseEstimator::estimatePose(std::vector<cv::Point2d> img_pts, std::vector<tf::Vector3> obj_pts, double& img_error)
 {
 	ROS_ASSERT(img_pts.size() == obj_pts.size());
 	cv::Mat obj = cv::Mat::zeros(3, obj_pts.size(), CV_64F);
@@ -41,10 +41,12 @@ tf::Transform CoPlanarPoseEstimator::estimatePose(std::vector<cv::Point2d> img_p
 
 	ROS_DEBUG_COND(!RPP::Rpp(obj, img, rot, tvec, iterations, obj_err, img_err), "Planar Pose Estimator Failed.");
 
-	ROS_DEBUG_STREAM("Pose Estimate: img_err: " << img_err << " obj_err: " << obj_err << " iterations: " << iterations);
+	img_error = img_err;
 
-	ROS_DEBUG_STREAM("estimated rot: " << rot);
-	ROS_DEBUG_STREAM("estimated tvec: " << tvec);
+	//ROS_DEBUG_STREAM("Pose Estimate: img_err: " << img_err << " obj_err: " << obj_err << " iterations: " << iterations);
+
+	//ROS_DEBUG_STREAM("estimated rot: " << rot);
+	//ROS_DEBUG_STREAM("estimated tvec: " << tvec);
 
 	tf::Transform trans;
 

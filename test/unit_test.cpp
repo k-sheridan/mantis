@@ -73,9 +73,20 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 
 	ROS_DEBUG_STREAM(quadCount << " quads detected");
 	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
+	if(quadCount == 0)
+		return;
 
 	// determine our next guesses
 	std::vector<Hypothesis> hyps = generateHypotheses(undistortAndNormalizeQuadTestPoints(quad_detect_frame.quads, quad_detect_frame.img.K, quad_detect_frame.img.D), quad_detect_frame.img);
+
+	evaluateHypotheses(hyps, quad_detect_frame.img);
+
+	hyps = getBestNHypotheses(400, hyps);
+
+	visualizeHypothesis(quad_detect_frame.img.img, hyps.front(), quad_detect_frame.img.K, quad_detect_frame.img.D);
+
+	//ros::Duration sleep(1);
+	//sleep.sleep();
 
 	hypotheses_pub.publish(formPoseArray(hyps));
 
@@ -153,8 +164,10 @@ int main(int argc, char **argv)
 
 	CoPlanarPoseEstimator pe;
 
+	double err;
+
 	Hypothesis estimate;
-	estimate.setC2W(pe.estimatePose(img_pts_normal, object_tf));
+	estimate.setC2W(pe.estimatePose(img_pts_normal, object_tf, err));
 
 	ROS_DEBUG_STREAM("estimate position: " << estimate.getPosition().x() << ", " << estimate.getPosition().y() << ", " << estimate.getPosition().z());
 

@@ -25,7 +25,7 @@ public:
 	CoPlanarPoseEstimator();
 	//virtual ~CoPlanarPoseEstimator();
 
-	tf::Transform estimatePose(std::vector<cv::Point2d> img_pts, std::vector<tf::Vector3> obj_pts);
+	tf::Transform estimatePose(std::vector<cv::Point2d> img_pts, std::vector<tf::Vector3> obj_pts, double& img_err);
 
 };
 

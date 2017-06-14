@@ -13,10 +13,43 @@
 bool inFrame(cv::Point2d px, int rows, int cols);
 double computeColorError(cv::Vec3i meas, cv::Vec3i des);
 double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::Vec3i desired);
+double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProjections);
+double evaluateHypothesis(Hypothesis hyp, MantisImage img);
 
-double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img)
+
+void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img){
+
+	for(auto& e : hyps)
+	{
+		e.error = evaluateHypothesis(e, img);
+	}
+
+}
+
+/*
+ * evaluates the hypothesis with all images
+ */
+double evaluateHypothesis(Hypothesis hyp, MantisImage img)
 {
-	int numProjections = 0;
+	int projections = 0;
+
+	double error = evaluateHypothesisWithImage(hyp, img, projections);
+
+	//ROS_DEBUG_STREAM(" projections " << projections);
+
+	if(projections <= 0)
+	{
+		return DBL_MAX;
+	}
+	else
+	{
+		return error / (double)projections;
+	}
+}
+
+double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProjections)
+{
+	//TODO look up the transform or use it
 	double error = 0;
 
 	for(auto e : white_map)
@@ -84,7 +117,7 @@ double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::V
 		{
 			cv::Vec3b meas = img.at<cv::Vec3b>(px + cv::Point2d(x, y));
 
-			double pt_error = computeColorError(meas, desired);
+			double pt_error = computeColorError(cv::Vec3i(meas[0], meas[1], meas[2]), desired);
 
 			if(pt_error < minError)
 			{
@@ -199,6 +232,42 @@ cv::Mat visualizeHypothesis(cv::Mat src, Hypothesis hyp, Quadrilateral quad, cv:
 	//sleep.sleep();
 
 	return src;
+}
+
+static bool wayToSort(Hypothesis i, Hypothesis j)
+{
+	//bool v = i.quality<j.quality;
+	return j.error<i.error;
+}
+
+std::vector<Hypothesis> getBestNHypotheses(int n, std::vector<Hypothesis> hyps){
+
+	if(hyps.size() <= n)
+	{
+		return hyps;
+	}
+	else
+	{
+		std::vector<Hypothesis> new_hyps;
+
+		std::nth_element(hyps.begin(), hyps.begin() + hyps.size() - n, hyps.end(), wayToSort);
+
+		for(int i = hyps.size() - n; i < hyps.size(); ++i)
+		{
+			new_hyps.push_back(hyps.at(i));
+		}
+
+#if SUPER_DEBUG
+		ROS_DEBUG("BEST HYPOTHESES");
+		for(auto e : new_hyps)
+		{
+			ROS_DEBUG_STREAM("error: " << e.error);
+		}
+#endif
+
+		return new_hyps;
+	}
+
 }
 
 
