@@ -34,12 +34,24 @@ cv::Mat final;
 #define BASE_FRAME "base_link"
 #define WORLD_FRAME "world"
 
+#define PROJECTION_BIAS 1.1
 
+//COLOR STUFF
 #define WHITE cv::Vec3i(255, 255, 255)
-#define RED cv::Vec3i(113, 48, 32)
-#define GREEN cv::Vec3i(50, 100, 37)
+#define RED cv::Vec3i(50, 85, 255)
+#define GREEN cv::Vec3i(50, 255, 85)
+
+#define MAX_WHITE_ERROR 20000
+#define MAX_RED_ERROR 2000
+#define MAX_GREEN_ERROR 20000
+
+#define MASK_BLUR_SIGMA 3
+#define MASK_DILATE 4
+#define MASK_ERODE 3
 
 #define COLOR_SEARCH_AREA cv::Size(2, 2)
+
+// PARTICLE FILTER
 
 #define ROT_SIGMA 0.03
 #define TRANS_SIGMA 0.01

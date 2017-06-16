@@ -103,13 +103,15 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 		return;
 	}
 
-
+	cv::Mat cleaned = cleanImageByColor(quad_detect_frame.img.img);
+	cv::Mat original = quad_detect_frame.img.img;
+	quad_detect_frame.img.img = cleaned;
 
 	//ros::Duration sleep(1);
 	//sleep.sleep();
 	evaluateHypotheses(hyps, quad_detect_frame.img);
 
-	hyps = getBestNHypotheses(15, hyps);
+	hyps = getBestNHypotheses(5, hyps);
 
 	ROS_DEBUG("OPTIMIZING HYPO");
 	Hypothesis optim = optimizeHypothesisWithParticleFilter(hyps.back(), quad_detect_frame.img);
@@ -119,9 +121,12 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	hyps = computeAllShiftedHypothesesFAST(optim);
 
 	evaluateHypotheses(hyps, quad_detect_frame.img, true);
-	hyps = getBestNHypotheses(10, hyps);
+	hyps = getBestNHypotheses(5, hyps);
 
-	visualizeHypothesis(quad_detect_frame.img.img.clone(), hyps.back(), quad_detect_frame.img.K, quad_detect_frame.img.D);
+	for(auto e : hyps)
+	{
+		visualizeHypothesis(quad_detect_frame.img.img.clone(), e, quad_detect_frame.img.K, quad_detect_frame.img.D);
+	}
 
 	hypotheses_pub.publish(formPoseArray(hyps));
 

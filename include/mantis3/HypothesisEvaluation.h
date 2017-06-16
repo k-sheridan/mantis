@@ -19,7 +19,7 @@ double evaluateHypothesis(Hypothesis hyp, MantisImage img, bool);
 double evaluateHypothesisCOLOR(Hypothesis hyp, MantisImage img, bool fast);
 
 
-void evaluateOneHypothesis(Hypothesis& hyp, MantisImage img, bool fast = false){
+void evaluateOneHypothesis(Hypothesis& hyp, MantisImage img, bool fast = true){
 
 
 	hyp.error = evaluateHypothesis(hyp, img, fast);
@@ -27,7 +27,7 @@ void evaluateOneHypothesis(Hypothesis& hyp, MantisImage img, bool fast = false){
 
 }
 
-void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = false){
+void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = true){
 
 	for(auto& e : hyps)
 	{
@@ -36,7 +36,7 @@ void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img, bool fas
 
 }
 
-void evaluateHypothesesColor(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = false){
+void evaluateHypothesesColor(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = true){
 
 	for(auto& e : hyps)
 	{
@@ -62,7 +62,7 @@ double evaluateHypothesis(Hypothesis hyp, MantisImage img, bool fast)
 	}
 	else
 	{
-		return error / (double)projections;
+		return error / ((double)projections * PROJECTION_BIAS);
 	}
 }
 
@@ -80,7 +80,7 @@ double evaluateHypothesisCOLOR(Hypothesis hyp, MantisImage img, bool fast)
 	}
 	else
 	{
-		return error / (double)projections;
+		return error / ((double)projections * PROJECTION_BIAS);
 	}
 }
 
@@ -245,6 +245,47 @@ double computeColorError(cv::Vec3i meas, cv::Vec3i des)
 	int dr = meas[2] - des[2];
 
 	return (double)(db*db + dg*dg + dr*dr);
+}
+
+cv::Mat cleanImageByColor(cv::Mat img)
+{
+	cv::Mat mask = cv::Mat::zeros(img.rows, img.cols, CV_8U);
+
+	for(int i = 0; i < img.rows; i++)
+	{
+		for(int j = 0; j < img.cols; j++)
+		{
+			double err = computeColorError(img.at<cv::Vec3b>(i, j), WHITE);
+			if(err < MAX_WHITE_ERROR)
+			{
+				mask.at<char>(i, j) = 255;
+				continue;
+			}
+			err = computeColorError(img.at<cv::Vec3b>(i, j), RED);
+			if(err < MAX_RED_ERROR)
+			{
+				mask.at<char>(i, j) = 255;
+				continue;
+			}
+			err = computeColorError(img.at<cv::Vec3b>(i, j), GREEN);
+			if(err < MAX_GREEN_ERROR)
+			{
+				mask.at<char>(i, j) = 255;
+				continue;
+			}
+
+		}
+	}
+
+	cv::dilate(mask, mask, cv::Mat(), cv::Point(-1, -1), MASK_DILATE);
+	cv::erode(mask, mask, cv::Mat(), cv::Point(-1, -1), MASK_ERODE);
+
+	cv::Mat out;
+	img.copyTo(out, mask);
+
+	cv::GaussianBlur(out, out, cv::Size(0, 0), MASK_BLUR_SIGMA, MASK_BLUR_SIGMA);
+	//out = mask;
+	return out;
 }
 
 bool inFrame(cv::Point2d px, int rows, int cols)
