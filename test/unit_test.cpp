@@ -45,6 +45,8 @@
 
 #include "mantis3/PoseClusterer.h"
 
+#include "mantis3/PoseAdjustment.h"
+
 ros::Publisher hypotheses_pub;
 
 Frame quad_detect_frame;
@@ -93,14 +95,33 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	std::vector<Hypothesis> hyps = generateHypotheses(undistortAndNormalizeQuadTestPoints(quad_detect_frame.quads, quad_detect_frame.img.K, quad_detect_frame.img.D), quad_detect_frame.img);
 
 	PoseClusterer pc(getQuatVec(hyps));
-	hyps = pc.clusterByAngle(MAX_ANGLE_DIFFERENCE, quadCount).removeSmallClusters().convert2Hypotheses(hyps, false);
+	//hyps = pc.clusterByAngle(MAX_ANGLE_DIFFERENCE, quadCount).removeSmallClusters().convert2Hypotheses(hyps, false);
+	hyps = pc.clusterByAngle(MAX_ANGLE_DIFFERENCE, quadCount).keepLargestCluster().convert2Hypotheses(hyps, false);
+
+	if(hyps.size() == 0)
+	{
+		return;
+	}
+
+
 
 	//ros::Duration sleep(1);
 	//sleep.sleep();
+	evaluateHypotheses(hyps, quad_detect_frame.img);
 
+	hyps = getBestNHypotheses(15, hyps);
+
+	ROS_DEBUG("OPTIMIZING HYPO");
+	Hypothesis optim = optimizeHypothesisWithParticleFilter(hyps.back(), quad_detect_frame.img);
+
+	visualizeHypothesis(quad_detect_frame.img.img.clone(), optim, quad_detect_frame.img.K, quad_detect_frame.img.D);
+
+	hyps = computeAllShiftedHypothesesFAST(optim);
+
+	evaluateHypotheses(hyps, quad_detect_frame.img, true);
 	hyps = getBestNHypotheses(10, hyps);
 
-	visualizeHypothesis(quad_detect_frame.img.img, hyps.front(), quad_detect_frame.img.K, quad_detect_frame.img.D);
+	visualizeHypothesis(quad_detect_frame.img.img.clone(), hyps.back(), quad_detect_frame.img.K, quad_detect_frame.img.D);
 
 	hypotheses_pub.publish(formPoseArray(hyps));
 

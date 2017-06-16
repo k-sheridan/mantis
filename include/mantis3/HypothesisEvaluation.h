@@ -12,16 +12,35 @@
 
 bool inFrame(cv::Point2d px, int rows, int cols);
 double computeColorError(cv::Vec3i meas, cv::Vec3i des);
-double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::Vec3i desired);
-double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProjections);
-double evaluateHypothesis(Hypothesis hyp, MantisImage img);
+double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::Vec3i desired, bool);
+double evaluateHypothesisWithImageWHITE(Hypothesis hyp, MantisImage img, int& numProjections, bool);
+double evaluateHypothesisWithImageCOLOR(Hypothesis hyp, MantisImage img, int& numProjections, bool);
+double evaluateHypothesis(Hypothesis hyp, MantisImage img, bool);
+double evaluateHypothesisCOLOR(Hypothesis hyp, MantisImage img, bool fast);
 
 
-void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img){
+void evaluateOneHypothesis(Hypothesis& hyp, MantisImage img, bool fast = false){
+
+
+	hyp.error = evaluateHypothesis(hyp, img, fast);
+
+
+}
+
+void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = false){
 
 	for(auto& e : hyps)
 	{
-		e.error = evaluateHypothesis(e, img);
+		e.error = evaluateHypothesis(e, img, fast);
+	}
+
+}
+
+void evaluateHypothesesColor(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = false){
+
+	for(auto& e : hyps)
+	{
+		e.error = evaluateHypothesisCOLOR(e, img, fast);
 	}
 
 }
@@ -29,11 +48,11 @@ void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img){
 /*
  * evaluates the hypothesis with all images
  */
-double evaluateHypothesis(Hypothesis hyp, MantisImage img)
+double evaluateHypothesis(Hypothesis hyp, MantisImage img, bool fast)
 {
 	int projections = 0;
 
-	double error = evaluateHypothesisWithImage(hyp, img, projections);
+	double error = evaluateHypothesisWithImageWHITE(hyp, img, projections, fast);
 
 	//ROS_DEBUG_STREAM(" projections " << projections);
 
@@ -47,7 +66,25 @@ double evaluateHypothesis(Hypothesis hyp, MantisImage img)
 	}
 }
 
-double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProjections)
+double evaluateHypothesisCOLOR(Hypothesis hyp, MantisImage img, bool fast)
+{
+	int projections = 0;
+
+	double error = evaluateHypothesisWithImageWHITE(hyp, img, projections, fast);
+
+	//ROS_DEBUG_STREAM(" projections " << projections);
+
+	if(projections <= 0)
+	{
+		return DBL_MAX;
+	}
+	else
+	{
+		return error / (double)projections;
+	}
+}
+
+double evaluateHypothesisWithImageWHITE(Hypothesis hyp, MantisImage img, int& numProjections, bool fast)
 {
 	//TODO look up the transform or use it
 	double error = 0;
@@ -62,7 +99,7 @@ double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProj
 			if(inFrame(px, img.img.rows, img.img.cols))
 			{
 				numProjections++; // add a projection
-				error += computePointError(px, COLOR_SEARCH_AREA, img.img, WHITE); // compute the error
+				error += computePointError(px, COLOR_SEARCH_AREA, img.img, WHITE, fast); // compute the error
 			}
 		}
 	}
@@ -77,7 +114,7 @@ double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProj
 			if(inFrame(px, img.img.rows, img.img.cols))
 			{
 				numProjections++; // add a projection
-				error += computePointError(px, COLOR_SEARCH_AREA, img.img, RED); // compute the error
+				error += computePointError(px, COLOR_SEARCH_AREA, img.img, WHITE, fast); // compute the error
 			}
 		}
 	}
@@ -92,7 +129,7 @@ double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProj
 			if(inFrame(px, img.img.rows, img.img.cols))
 			{
 				numProjections++; // add a projection
-				error += computePointError(px, COLOR_SEARCH_AREA, img.img, GREEN); // compute the error
+				error += computePointError(px, COLOR_SEARCH_AREA, img.img, WHITE, fast); // compute the error
 			}
 		}
 	}
@@ -100,13 +137,83 @@ double evaluateHypothesisWithImage(Hypothesis hyp, MantisImage img, int& numProj
 	return error;
 }
 
+double evaluateHypothesisWithImageCOLOR(Hypothesis hyp, MantisImage img, int& numProjections, bool fast)
+{
+	//TODO look up the transform or use it
+	double error = 0;
+
+	for(auto e : white_map)
+	{
+		tf::Vector3 reproj = hyp.projectPoint(e);
+		if(reproj.z() > 0)
+		{
+			cv::Point2d px = hyp.distortPixel(reproj, img.K, img.D);
+
+			if(inFrame(px, img.img.rows, img.img.cols))
+			{
+				numProjections++; // add a projection
+				error += computePointError(px, COLOR_SEARCH_AREA, img.img, WHITE, fast); // compute the error
+			}
+		}
+	}
+
+	for(auto e : red_map)
+	{
+		tf::Vector3 reproj = hyp.projectPoint(e);
+		if(reproj.z() > 0)
+		{
+			cv::Point2d px = hyp.distortPixel(reproj, img.K, img.D);
+
+			if(inFrame(px, img.img.rows, img.img.cols))
+			{
+				numProjections++; // add a projection
+				error += computePointError(px, COLOR_SEARCH_AREA, img.img, RED, fast); // compute the error
+			}
+		}
+	}
+
+	for(auto e : green_map)
+	{
+		tf::Vector3 reproj = hyp.projectPoint(e);
+		if(reproj.z() > 0)
+		{
+			cv::Point2d px = hyp.distortPixel(reproj, img.K, img.D);
+
+			if(inFrame(px, img.img.rows, img.img.cols))
+			{
+				numProjections++; // add a projection
+				error += computePointError(px, COLOR_SEARCH_AREA, img.img, GREEN, fast); // compute the error
+			}
+		}
+	}
+
+	return error;
+}
+
+double computePointErrorFAST(cv::Point2d px, cv::Mat img, cv::Vec3i desired)
+{
+	//double minError = DBL_MAX;
+	double err = 0;
+	cv::Vec3b meas = img.at<cv::Vec3b>(px);
+
+	err = computeColorError(cv::Vec3i(meas[0], meas[1], meas[2]), desired);
+
+	return err;
+}
+
 /*
  * searches a box around the pixel for the closest color
  * to the desired color
  */
-double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::Vec3i desired)
+double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::Vec3i desired, bool fast)
 {
-	double minError = DBL_MAX;
+	if(fast)
+	{
+		return computePointErrorFAST(px, img, desired);
+	}
+
+	//double minError = DBL_MAX;
+	double err = 0;
 
 	double half_x = searchArea.width/2.0;
 	double half_y = searchArea.height/2.0;
@@ -119,14 +226,16 @@ double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::V
 
 			double pt_error = computeColorError(cv::Vec3i(meas[0], meas[1], meas[2]), desired);
 
-			if(pt_error < minError)
+			/*if(pt_error < minError)
 			{
 				minError = pt_error;
-			}
+			}*/
+
+			err += pt_error;
 		}
 	}
 
-	return minError;
+	return err;
 }
 
 double computeColorError(cv::Vec3i meas, cv::Vec3i des)
@@ -250,7 +359,7 @@ std::vector<Hypothesis> getBestNHypotheses(int n, std::vector<Hypothesis> hyps){
 	{
 		std::vector<Hypothesis> new_hyps;
 
-		std::nth_element(hyps.begin(), hyps.begin() + hyps.size() - n, hyps.end(), wayToSort);
+		std::sort(hyps.begin(), hyps.end(), wayToSort);
 
 		for(int i = hyps.size() - n; i < hyps.size(); ++i)
 		{

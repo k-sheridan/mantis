@@ -23,7 +23,7 @@ cv::Mat final;
 #define GRID_SIZE 9
 #define DEF_GRID_SPACING 0.32
 
-#define MAX_QUAD_ERROR 0.6
+#define MAX_QUAD_ERROR 0.5
 
 #define MAX_ANGLE_DIFFERENCE 0.1
 
@@ -39,7 +39,10 @@ cv::Mat final;
 #define RED cv::Vec3i(113, 48, 32)
 #define GREEN cv::Vec3i(50, 100, 37)
 
-#define COLOR_SEARCH_AREA cv::Size(10, 10)
+#define COLOR_SEARCH_AREA cv::Size(2, 2)
+
+#define ROT_SIGMA 0.03
+#define TRANS_SIGMA 0.01
 
 //params
 double GRID_SPACING;
@@ -55,6 +58,8 @@ std::vector<tf::Vector3> red_map;
 std::vector<tf::Vector3> green_map;
 
 tf::TransformListener* tf_listener;
+
+cv::RNG rng(1);
 
 std::vector<tf::Vector3> gridSquare;
 

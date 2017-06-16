@@ -56,12 +56,40 @@ public:
 			return *this;
 		}
 
+		Results keepLargestCluster()
+		{
+			int largest_index = 0;
+			if(centers.size() == 0){
+				return *this;
+			}
+			ROS_ASSERT(centers.size() == indexes.size());
+			for(int i = 0; i < indexes.size(); i++)
+			{
+				if(indexes.at(i).size() > indexes.at(largest_index).size())
+				{
+					largest_index = i;
+				}
+			}
+
+			std::vector<std::vector<int> > indexes_new;
+			std::vector<cv::Point3f> centers_new;
+
+			indexes_new.push_back(indexes.at(largest_index));
+			centers_new.push_back(centers.at(largest_index));
+
+			indexes = indexes_new;
+			centers = centers_new;
+			ROS_DEBUG_STREAM("NEW CLUSTER COUNT " << indexes.size());
+
+			return *this;
+		}
+
 		/*
 		 * converts the results to hypotheses
 		 * replaces the orientation of the hypos with centers if desired
 		 */
 		std::vector<Hypothesis> convert2Hypotheses(std::vector<Hypothesis> in, bool replace_quat)
-		{
+				{
 			std::vector<Hypothesis> hyps;
 
 			for(int i = 0; i < indexes.size(); i++)
@@ -84,7 +112,7 @@ public:
 			}
 
 			return hyps;
-		}
+				}
 	};
 
 	struct Pose{

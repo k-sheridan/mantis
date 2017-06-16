@@ -108,8 +108,35 @@ std::vector<Hypothesis> generateCentralHypotheses(Quadrilateral quad, bool& pass
 	return central;
 }
 
-std::vector<Hypothesis> computeAllQuadHypothesesFAST(Quadrilateral quad){
+Hypothesis shiftHypothesis(Hypothesis& hyp, tf::Vector3 delta){
+	Hypothesis newHyp;
 
+	tf::Transform newW2C = hyp.getW2C();
+	newW2C.getOrigin() += delta;
+
+	newHyp.setW2C(newW2C);
+
+	return newHyp;
+}
+
+/*
+ * shifts the hypotheses to all possible positions
+ */
+std::vector<Hypothesis> computeAllShiftedHypothesesFAST(Hypothesis hyp){
+
+	std::vector<Hypothesis> final;
+
+	for(double x = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); x < ((double)GRID_SIZE/2.0)*GRID_SPACING; x += GRID_SPACING)
+	{
+		for(double y = -((double)GRID_SIZE/2.0)*GRID_SPACING + ((double)GRID_SPACING/2.0); y < ((double)GRID_SIZE/2.0)*GRID_SPACING; y += GRID_SPACING)
+		{
+
+			final.push_back(shiftHypothesis(hyp, tf::Vector3(x, y, 0)));
+
+		}
+	}
+
+	return final;
 }
 
 
