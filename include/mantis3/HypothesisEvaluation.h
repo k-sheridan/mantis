@@ -18,6 +18,7 @@ double evaluateHypothesisWithImageCOLOR(Hypothesis hyp, MantisImage img, int& nu
 double evaluateHypothesis(Hypothesis hyp, MantisImage img, bool);
 double evaluateHypothesisCOLOR(Hypothesis hyp, MantisImage img, bool fast);
 
+cv::Mat visualizeHypothesis(cv::Mat src, Hypothesis hyp, cv::Mat K, cv::Mat D);
 
 void evaluateOneHypothesis(Hypothesis& hyp, MantisImage img, bool fast = true){
 
@@ -32,6 +33,9 @@ void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img, bool fas
 	for(auto& e : hyps)
 	{
 		e.error = evaluateHypothesis(e, img, fast);
+#if SUPER_DEBUG
+		visualizeHypothesis(img.img.clone(), e, img.K, img.D);
+#endif
 	}
 
 }
@@ -277,14 +281,83 @@ cv::Mat cleanImageByColor(cv::Mat img)
 		}
 	}
 
-	cv::dilate(mask, mask, cv::Mat(), cv::Point(-1, -1), MASK_DILATE);
-	cv::erode(mask, mask, cv::Mat(), cv::Point(-1, -1), MASK_ERODE);
+	//cv::dilate(mask, mask, cv::Mat(), cv::Point(-1, -1), MASK_DILATE);
+	//cv::erode(mask, mask, cv::Mat(), cv::Point(-1, -1), MASK_ERODE);
+	cv::morphologyEx(mask,mask,cv::MORPH_CLOSE,cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(3,3)));
 
 	cv::Mat out;
 	img.copyTo(out, mask);
 
 	cv::GaussianBlur(out, out, cv::Size(0, 0), MASK_BLUR_SIGMA, MASK_BLUR_SIGMA);
 	//out = mask;
+	return out;
+}
+
+cv::Mat cleanImageByEdge(cv::Mat img)
+{
+	cv::Mat mono;
+	//cv::fisheye::undistortImage(f->img, f->img, f->K, f->D, f->K);
+	cv::cvtColor(img, mono, CV_BGR2GRAY);
+
+	cv::Mat canny;
+	cv::GaussianBlur(mono, mono, MASK_BLUR_SIZE, MASK_BLUR_SIGMA, MASK_BLUR_SIGMA);
+	cv::Canny(mono, canny, CANNY_HYSTERESIS, 3 * CANNY_HYSTERESIS, 3);
+
+
+	cv::imshow("test", canny);
+	cv::waitKey(30);
+	ros::Duration wait(1);
+	wait.sleep();
+
+
+	cv::Mat tmp=canny.clone();
+	cv::morphologyEx(tmp,tmp,cv::MORPH_GRADIENT,cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(3,3)));
+	cv::bitwise_not(tmp,tmp);
+	cv::Mat smallholes = cv::Mat::zeros(tmp.size(), CV_8UC1);
+	std::vector<std::vector<cv::Point> > contours;
+	cv::findContours(tmp,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
+	for(int i = 0; i < contours.size(); i++)
+	{
+
+		double area = cv::contourArea(contours[i]);
+
+		cv::drawContours(smallholes, contours, i, 255, 1);
+	}
+	cv::Mat mask;
+	cv::bitwise_or(canny,smallholes,mask);
+
+	for(int i = 0; i < MASK_CLOSE_ASCEND_ITER; i++)
+	{
+		cv::dilate(mask, mask, cv::Mat(), cv::Size(-1, -1), MASK_INIT_CLOSE_ITER+i, 1, 1);
+#if SUPER_DEBUG
+		cv::imshow("test", mask);
+		cv::waitKey(30);
+		ros::Duration wait1(1);
+		//wait1.sleep();
+#endif
+
+		cv::erode(mask, mask, cv::Mat(), cv::Size(-1, -1), MASK_INIT_CLOSE_ITER+i, 1, 1);
+#if SUPER_DEBUG
+		cv::imshow("test", mask);
+		cv::waitKey(30);
+		ros::Duration wait2(1);
+		//wait2.sleep();
+#endif
+	}
+
+	cv::erode(mask, mask, cv::Mat(), cv::Size(-1, -1), MASK_ERODE_ITER, 1, 1);
+#if SUPER_DEBUG
+	cv::imshow("test", mask);
+	cv::waitKey(30);
+	ros::Duration wait3(1);
+	//wait3.sleep();
+#endif
+
+
+
+	cv::Mat out;
+
+	img.copyTo(out, mask);
 	return out;
 }
 
@@ -419,6 +492,8 @@ std::vector<Hypothesis> getBestNHypotheses(int n, std::vector<Hypothesis> hyps){
 	}
 
 }
+
+
 
 
 #endif /* MANTIS_INCLUDE_MANTIS3_ROBUSTPLANARPOSE_HYPOTHESISEVALUATION_H_ */

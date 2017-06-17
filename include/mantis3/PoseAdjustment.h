@@ -26,7 +26,7 @@ Hypothesis generateRandomHypothesis(Hypothesis hyp){
  * runs a particle filter like algorithm with a best particle re-sampling step
  * may be replaced with direct image alignment methods ie Lucas-Kanade-Tomasi
  */
-Hypothesis optimizeHypothesisWithParticleFilter(Hypothesis in, MantisImage img, int particles = 50, int iterations = 4)
+Hypothesis optimizeHypothesisWithParticleFilter(Hypothesis in, MantisImage img, int particles = 100, int iterations = 1)
 {
 	Hypothesis current_best = in;
 	evaluateOneHypothesis(current_best, img, true);

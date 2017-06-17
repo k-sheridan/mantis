@@ -9,7 +9,7 @@
 #define MANTIS_INCLUDE_MANTIS2_MANTIS2PARAMS_H_
 
 
-#define SUPER_DEBUG true
+#define SUPER_DEBUG false
 
 #if SUPER_DEBUG
 bool imgReady = false;
@@ -46,8 +46,10 @@ cv::Mat final;
 #define MAX_GREEN_ERROR 20000
 
 #define MASK_BLUR_SIGMA 3
-#define MASK_DILATE 4
-#define MASK_ERODE 3
+#define MASK_BLUR_SIZE cv::Size(3, 3)
+#define MASK_INIT_CLOSE_ITER 3
+#define MASK_CLOSE_ASCEND_ITER 3
+#define MASK_ERODE_ITER 3
 
 #define COLOR_SEARCH_AREA cv::Size(2, 2)
 
