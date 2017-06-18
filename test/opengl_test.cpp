@@ -30,27 +30,39 @@
 
 void init();
 void display();
+void prepare();
 
 int const fbo_width = 512;
 int const fbo_height = 512;
 
 GLuint fb, color, depth;
 
+
+
 int main(int argc, char *argv[])
 {
 
 	ros::init(argc, argv, "unit_test");
-	glutInit(&argc, argv);
+	char *myargv [1];
+	int myargc=1;
+	myargv [0]=strdup ("Myappname");
+	glutInit(&myargc, myargv);
 	glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
-
 	glutCreateWindow("FBO test");
-	glutDisplayFunc(display);
-	glutIdleFunc(glutPostRedisplay);
+	//glutDisplayFunc(display);
+	//glutIdleFunc(glutPostRedisplay);
+	glutHideWindow();
 
 	glewInit();
 
+	ROS_DEBUG("here0");
+
 	init();
-	glutMainLoop();
+	//glutMainLoop();
+	while(ros::ok())
+	{
+		prepare();
+	}
 
 	return 0;
 }
@@ -79,12 +91,16 @@ float const light_color[]={1,0.95,0.9,1};
 
 void init()
 {
+
 	glGenFramebuffers(1, &fb);
 	glGenTextures(1, &color);
 	glGenRenderbuffers(1, &depth);
 
+	ROS_DEBUG("here1.25");
+
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
 
+	ROS_DEBUG("here1.5");
 	glBindTexture(GL_TEXTURE_2D, color);
 	glTexImage2D(   GL_TEXTURE_2D,
 			0,
@@ -94,6 +110,8 @@ void init()
 			GL_RGBA,
 			GL_UNSIGNED_BYTE,
 			NULL);
+
+	ROS_DEBUG("here1");
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -110,6 +128,7 @@ void prepare()
 {
 	static float a=0, b=0, c=0;
 
+	ROS_DEBUG("start");
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glEnable(GL_TEXTURE_2D);
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
@@ -140,8 +159,9 @@ void prepare()
 	glRotatef(a, 1, 0, 0);
 	glRotatef(b, 0, 1, 0);
 	glRotatef(c, 0, 0, 1);
-
+ROS_DEBUG("before tp");
 	glutSolidTeapot(0.75);
+	ROS_DEBUG("after tp");
 
 	a=fmod(a+0.1, 360.);
 	b=fmod(b+0.5, 360.);
@@ -166,6 +186,9 @@ void prepare()
 
 	cv::imshow("test",result);
 	cv::waitKey(30);
+	ROS_DEBUG("end");
+
+	glutHideWindow();
 }
 
 void final()
@@ -248,7 +271,7 @@ void final()
 void display()
 {
 	prepare();
-	final();
+	//final();
 
-	glutSwapBuffers();
+	//glutSwapBuffers();
 }
