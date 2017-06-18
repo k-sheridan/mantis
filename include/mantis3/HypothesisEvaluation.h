@@ -493,6 +493,25 @@ std::vector<Hypothesis> getBestNHypotheses(int n, std::vector<Hypothesis> hyps){
 
 }
 
+std::vector<Hypothesis> getAllRotations(std::vector<Hypothesis> hyps){
+	tf::Transform rotZ = tf::Transform(tf::Quaternion(0, 0, 1/sqrt(2), 1/sqrt(2)));
+	std::vector<Hypothesis> out;
+
+	for(auto e : hyps)
+	{
+		Hypothesis hyp;
+		out.push_back(e);
+		hyp.setW2C(rotZ * out.back().getW2C());
+		out.push_back(hyp);
+		hyp.setW2C(rotZ * out.back().getW2C());
+		out.push_back(hyp);
+		hyp.setW2C(rotZ * out.back().getW2C());
+		out.push_back(hyp);
+	}
+
+	return out;
+}
+
 
 
 

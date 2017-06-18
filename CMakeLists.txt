@@ -21,12 +21,18 @@ find_package(OpenCV REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 
+find_package(GLUT REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(OpenGL REQUIRED)
+
 include_directories(
 	${OpenCV_INCLUDE_DIRS}
 	include
 	include/mantis
 	${catkin_INCLUDE_DIRS}
-	
+	${OpenGL_INCLUDE_DIRS}
+ 	${GLUT_INCLUDE_DIRS}
+ 	${GLEW_INCLUDE_DIRS}
 	${Eigen_INCLUDE_DIRS}
 )
 
@@ -53,6 +59,9 @@ catkin_package(
    DEPENDS opencv
 )
 
+add_library(mantisGridRenderer include/mantis3/GridRenderer.cpp)
+target_link_libraries(mantisGridRenderer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
+
 add_library(clusterer include/mantis3/PoseClusterer.cpp)
 target_link_libraries(clusterer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
@@ -66,10 +75,13 @@ add_library(poseEstimation include/mantis3/CoPlanarPoseEstimator.cpp)
 target_link_libraries(poseEstimation ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} rpp)
 
 add_executable(mantis_test test/unit_test.cpp)
-target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer)
+target_link_libraries(mantis_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer mantisGridRenderer)
+
+add_executable(ogl_test test/opengl_test.cpp)
+target_link_libraries(ogl_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${GLEW_LIBRARY})
 
 add_executable(mantis3 src/mantis3.cpp)
-target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer)
+target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer mantisGridRenderer)
 
 #add_executable(mantis2 src/mantis2.cpp)
 #target_link_libraries(mantis2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})

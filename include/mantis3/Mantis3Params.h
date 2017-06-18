@@ -51,7 +51,7 @@ cv::Mat final;
 #define MASK_CLOSE_ASCEND_ITER 3
 #define MASK_ERODE_ITER 3
 
-#define COLOR_SEARCH_AREA cv::Size(2, 2)
+#define COLOR_SEARCH_AREA cv::Size(10, 10)
 
 // PARTICLE FILTER
 

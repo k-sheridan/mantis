@@ -26,11 +26,11 @@ Hypothesis generateRandomHypothesis(Hypothesis hyp){
  * runs a particle filter like algorithm with a best particle re-sampling step
  * may be replaced with direct image alignment methods ie Lucas-Kanade-Tomasi
  */
-Hypothesis optimizeHypothesisWithParticleFilter(Hypothesis in, MantisImage img, int particles = 100, int iterations = 1)
+Hypothesis optimizeHypothesisWithParticleFilter(Hypothesis in, MantisImage img, int particles = 50, int iterations = 10)
 {
 	Hypothesis current_best = in;
 	evaluateOneHypothesis(current_best, img, true);
-	//visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
+	visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
 
 	ROS_DEBUG_STREAM("ITERATION 0 ERROR : " << current_best.error);
 
@@ -51,7 +51,7 @@ Hypothesis optimizeHypothesisWithParticleFilter(Hypothesis in, MantisImage img, 
 		}
 
 		ROS_DEBUG_STREAM("ITERATION " << i+1 << " ERROR : " << current_best.error);
-		//visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
+		visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
 
 	}
 

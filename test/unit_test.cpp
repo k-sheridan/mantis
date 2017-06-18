@@ -31,6 +31,8 @@
 
 #include <eigen3/Eigen/Eigen>
 
+#include "mantis3/GridRenderer.h"
+
 #include "mantis3/Mantis3Params.h"
 
 #include "mantis3/Mantis3Types.h"
@@ -224,6 +226,21 @@ int main(int argc, char **argv)
 
 	ros::Duration sleep2(1);
 	sleep2.sleep();
+
+	GridRenderer gr(cv::Size(1024, 1280));
+
+	gr.setColors(WHITE, GREEN, RED);
+	gr.setIntrinsic(K);
+	gr.setC2W(actual_hyp.getC2W());
+
+	cv::Mat render = gr.renderGrid();
+
+	cv::imshow("test", render);
+	cv::waitKey(30);
+
+	ros::Duration sleep3(1);
+	sleep3.sleep();
+
 
 	ROS_DEBUG("beggining dataset");
 
