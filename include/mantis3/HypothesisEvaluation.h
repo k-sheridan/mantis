@@ -40,11 +40,27 @@ void evaluateHypotheses(std::vector<Hypothesis>& hyps, MantisImage img, bool fas
 
 }
 
-void evaluateHypothesesColor(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = true){
+double evaluateHypothesesColor(std::vector<Hypothesis>& hyps, MantisImage img, bool fast = true){
 
+	double totalError = 0;
+	int success = 0;
 	for(auto& e : hyps)
 	{
 		e.error = evaluateHypothesisCOLOR(e, img, fast);
+		if(fabs(e.error - DBL_MAX) > 0.001)
+		{
+			success++;
+			totalError += e.error;
+		}
+	}
+
+	if(success == 0)
+	{
+		return DBL_MAX;
+	}
+	else
+	{
+		return totalError / (double)success;
 	}
 
 }
@@ -74,7 +90,7 @@ double evaluateHypothesisCOLOR(Hypothesis hyp, MantisImage img, bool fast)
 {
 	int projections = 0;
 
-	double error = evaluateHypothesisWithImageWHITE(hyp, img, projections, fast);
+	double error = evaluateHypothesisWithImageCOLOR(hyp, img, projections, fast);
 
 	//ROS_DEBUG_STREAM(" projections " << projections);
 
@@ -84,7 +100,7 @@ double evaluateHypothesisCOLOR(Hypothesis hyp, MantisImage img, bool fast)
 	}
 	else
 	{
-		return error / ((double)projections * PROJECTION_BIAS);
+		return error / ((double)projections * COLOR_PROJECTION_BIAS);
 	}
 }
 
@@ -146,7 +162,7 @@ double evaluateHypothesisWithImageCOLOR(Hypothesis hyp, MantisImage img, int& nu
 	//TODO look up the transform or use it
 	double error = 0;
 
-	for(auto e : white_map)
+	/*	for(auto e : white_map)
 	{
 		tf::Vector3 reproj = hyp.projectPoint(e);
 		if(reproj.z() > 0)
@@ -159,34 +175,39 @@ double evaluateHypothesisWithImageCOLOR(Hypothesis hyp, MantisImage img, int& nu
 				error += computePointError(px, COLOR_SEARCH_AREA, img.img, WHITE, fast); // compute the error
 			}
 		}
-	}
-
-	for(auto e : red_map)
+	}*/
+	if(RED_ONLY || RED_AND_GREEN)
 	{
-		tf::Vector3 reproj = hyp.projectPoint(e);
-		if(reproj.z() > 0)
+		for(auto e : red_map)
 		{
-			cv::Point2d px = hyp.distortPixel(reproj, img.K, img.D);
-
-			if(inFrame(px, img.img.rows, img.img.cols))
+			tf::Vector3 reproj = hyp.projectPoint(e);
+			if(reproj.z() > 0)
 			{
-				numProjections++; // add a projection
-				error += computePointError(px, COLOR_SEARCH_AREA, img.img, RED, fast); // compute the error
+				cv::Point2d px = hyp.distortPixel(reproj, img.K, img.D);
+
+				if(inFrame(px, img.img.rows, img.img.cols))
+				{
+					numProjections++; // add a projection
+					error += computePointError(px, COLOR_SEARCH_AREA, img.img, RED, fast); // compute the error
+				}
 			}
 		}
 	}
 
-	for(auto e : green_map)
+	if(GREEN_ONLY || RED_AND_GREEN)
 	{
-		tf::Vector3 reproj = hyp.projectPoint(e);
-		if(reproj.z() > 0)
+		for(auto e : green_map)
 		{
-			cv::Point2d px = hyp.distortPixel(reproj, img.K, img.D);
-
-			if(inFrame(px, img.img.rows, img.img.cols))
+			tf::Vector3 reproj = hyp.projectPoint(e);
+			if(reproj.z() > 0)
 			{
-				numProjections++; // add a projection
-				error += computePointError(px, COLOR_SEARCH_AREA, img.img, GREEN, fast); // compute the error
+				cv::Point2d px = hyp.distortPixel(reproj, img.K, img.D);
+
+				if(inFrame(px, img.img.rows, img.img.cols))
+				{
+					numProjections++; // add a projection
+					error += computePointError(px, COLOR_SEARCH_AREA, img.img, GREEN, fast); // compute the error
+				}
 			}
 		}
 	}
@@ -238,6 +259,8 @@ double computePointError(cv::Point2d px, cv::Size searchArea, cv::Mat img, cv::V
 			err += pt_error;
 		}
 	}
+
+	err /= (double)(searchArea.height * searchArea.width);
 
 	return err;
 }
@@ -382,7 +405,7 @@ cv::Mat visualizeHypothesis(cv::Mat src, Hypothesis hyp, cv::Mat K, cv::Mat D)
 		//ROS_DEBUG_STREAM("test projected point: " << reproj_raw.x() << ", " << reproj_raw.y() << ", " << reproj_raw.z());
 		if(reproj_raw.z() > 0)
 		{
-			cv::drawMarker(src, hyp.distortPixel(reproj_raw, K, D), cv::Scalar(255, 255, 255));
+			cv::drawMarker(src, hyp.distortPixel(reproj_raw, K, D), WHITE);
 		}
 	}
 	for(auto e : red_map)
@@ -391,7 +414,7 @@ cv::Mat visualizeHypothesis(cv::Mat src, Hypothesis hyp, cv::Mat K, cv::Mat D)
 		//ROS_DEBUG_STREAM("test projected point: " << reproj_raw.x() << ", " << reproj_raw.y() << ", " << reproj_raw.z());
 		if(reproj_raw.z() > 0)
 		{
-			cv::drawMarker(src, hyp.distortPixel(reproj_raw, K, D), cv::Scalar(0, 0, 255));
+			cv::drawMarker(src, hyp.distortPixel(reproj_raw, K, D), RED);
 		}
 	}
 	for(auto e : green_map)
@@ -400,7 +423,7 @@ cv::Mat visualizeHypothesis(cv::Mat src, Hypothesis hyp, cv::Mat K, cv::Mat D)
 		//ROS_DEBUG_STREAM("test projected point: " << reproj_raw.x() << ", " << reproj_raw.y() << ", " << reproj_raw.z());
 		if(reproj_raw.z() > 0)
 		{
-			cv::drawMarker(src, hyp.distortPixel(reproj_raw, K, D), cv::Scalar(0, 255, 0));
+			cv::drawMarker(src, hyp.distortPixel(reproj_raw, K, D), GREEN);
 		}
 	}
 
@@ -491,6 +514,69 @@ std::vector<Hypothesis> getBestNHypotheses(int n, std::vector<Hypothesis> hyps){
 		return new_hyps;
 	}
 
+}
+
+
+std::vector<Hypothesis> determineBestYaw(std::vector<Hypothesis> hyps, MantisImage img, double min_error_diff){
+	tf::Transform rotZ = tf::Transform(tf::Quaternion(0, 0, 1/sqrt(2), 1/sqrt(2)));
+
+	std::vector<std::vector<Hypothesis> > rots;
+
+	rots.push_back(hyps); // no rot
+	for(int i = 1; i < 4; i++)
+	{
+		rots.push_back(rots.back());
+		for(int j = 0; j < hyps.size(); j++)
+		{
+			Hypothesis temp = rots.at(i).at(j);
+			temp.setW2C(rotZ * rots.at(i-1).at(j).getW2C());
+			rots.at(i).at(j) = temp; // rotate the last rotation by 90 deg
+		}
+		ROS_ASSERT(rots.at(i).size() == hyps.size());
+	}
+
+	ROS_ASSERT(rots.size() == 4);
+
+	std::vector<Hypothesis> best;
+	double best_error = DBL_MAX;
+
+	std::vector<double> errors;
+
+	for(auto e : rots)
+	{
+		double tempError = evaluateHypothesesColor(e, img, false);
+		ROS_DEBUG_STREAM("yaw error: " << tempError);
+
+		if(tempError < best_error)
+		{
+			best_error = tempError;
+			best = e;
+		}
+		errors.push_back(tempError);
+	}
+
+	ROS_DEBUG_STREAM("best error: " << best_error);
+
+	double min1=DBL_MAX, min2=DBL_MAX;
+
+	for(auto e : errors)
+	{
+		double diff = e - best_error;
+		if(diff < min1)
+		{
+			min2 = min1;
+			min1 = diff;
+		}
+		else if(diff < min2)
+		{
+			min2 = diff;
+		}
+	}
+
+	ROS_DEBUG_STREAM("abs min: " << min1 <<" abs min 2: " << min2);
+	min_error_diff = min1;
+
+	return best;
 }
 
 std::vector<Hypothesis> getAllRotations(std::vector<Hypothesis> hyps){

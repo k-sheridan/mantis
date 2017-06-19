@@ -10,11 +10,8 @@
 
 #include <ros/ros.h>
 
-#include <GL/gl.h>
-#include <GL/glu.h>
+#include <GL/glew.h>
 #include <GL/glut.h>
-#include <GL/glext.h>
-#include "glm/gtc/matrix_transform.hpp"
 
 
 #include <opencv2/highgui/highgui.hpp>
@@ -44,6 +41,8 @@ public:
 	double grid_spacing;
 	double inner_line_thickness;
 	double outer_line_thickness;
+
+	GLuint fb, color, depth;
 
 	cv::Vec3f WHITE, RED, GREEN;
 

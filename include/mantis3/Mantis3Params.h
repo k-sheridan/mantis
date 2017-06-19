@@ -9,7 +9,7 @@
 #define MANTIS_INCLUDE_MANTIS2_MANTIS2PARAMS_H_
 
 
-#define SUPER_DEBUG false
+#define SUPER_DEBUG true
 
 #if SUPER_DEBUG
 bool imgReady = false;
@@ -25,7 +25,7 @@ cv::Mat final;
 
 #define MAX_QUAD_ERROR 0.5
 
-#define MAX_ANGLE_DIFFERENCE 0.1
+#define MAX_ANGLE_DIFFERENCE 0.2
 
 #define POSE_SOLVE_METHOD cv::SOLVEPNP_ITERATIVE
 
@@ -41,22 +41,31 @@ cv::Mat final;
 #define RED cv::Vec3i(50, 85, 255)
 #define GREEN cv::Vec3i(50, 255, 85)
 
-#define MAX_WHITE_ERROR 20000
-#define MAX_RED_ERROR 2000
-#define MAX_GREEN_ERROR 20000
-
 #define MASK_BLUR_SIGMA 3
 #define MASK_BLUR_SIZE cv::Size(3, 3)
 #define MASK_INIT_CLOSE_ITER 3
 #define MASK_CLOSE_ASCEND_ITER 3
 #define MASK_ERODE_ITER 3
 
-#define COLOR_SEARCH_AREA cv::Size(10, 10)
+#define COLOR_SEARCH_AREA cv::Size(20, 20)
+//use these to tune for the competition
+#define MAX_WHITE_ERROR 20000
+#define MAX_RED_ERROR 2000
+#define MAX_GREEN_ERROR 20000
+#define COLOR_PROJECTION_BIAS 1.1
+#define RED_ONLY false
+#define GREEN_ONLY true
+#define RED_AND_GREEN  false
 
 // PARTICLE FILTER
 
 #define ROT_SIGMA 0.03
 #define TRANS_SIGMA 0.01
+
+//OUTPUT CONSTRAINTS
+//this is the minimum yaw ambiguity
+#define MINIMUM_YAW_DIFFERENCE 4000
+#define PIXEL_ERROR_VARIANCE_COEFF (1.0/600.0)
 
 //params
 double GRID_SPACING;

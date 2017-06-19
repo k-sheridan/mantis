@@ -60,7 +60,7 @@ catkin_package(
 )
 
 add_library(mantisGridRenderer include/mantis3/GridRenderer.cpp)
-target_link_libraries(mantisGridRenderer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
+target_link_libraries(mantisGridRenderer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${GLEW_LIBRARY})
 
 add_library(clusterer include/mantis3/PoseClusterer.cpp)
 target_link_libraries(clusterer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

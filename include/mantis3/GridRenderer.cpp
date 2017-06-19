@@ -7,12 +7,73 @@
 
 #include <mantis3/GridRenderer.h>
 
+void CHECK_FRAMEBUFFER_STATUS()
+{
+	GLenum status;
+	status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+	switch(status) {
+	case GL_FRAMEBUFFER_COMPLETE:
+		break;
+
+	case GL_FRAMEBUFFER_UNSUPPORTED:
+		/* choose different formats */
+		break;
+
+	default:
+		/* programming error; will fail on all hardware */
+		fputs("Framebuffer Error\n", stderr);
+		exit(-1);
+	}
+}
+
 GridRenderer::GridRenderer(cv::Size sz) {
+
 	setSize(sz);
-	glutInit(0, 0);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(sz.width, sz.height);
-	glutCreateWindow("glut");
+
+	char *myargv [1];
+	int myargc=1;
+	myargv [0]=strdup ("Myappname");
+	glutInit(&myargc, myargv);
+	glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
+	glutCreateWindow("FBO test");
+	//glutDisplayFunc(display);
+	//glutIdleFunc(glutPostRedisplay);
+	glutHideWindow();
+
+	glewInit();
+
+
+	//set up
+	glGenFramebuffers(1, &fb);
+	glGenTextures(1, &color);
+	glGenRenderbuffers(1, &depth);
+
+	ROS_DEBUG("here1.25");
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+	ROS_DEBUG("here1.5");
+	glBindTexture(GL_TEXTURE_2D, color);
+	glTexImage2D(   GL_TEXTURE_2D,
+			0,
+			GL_RGBA,
+			sz.width, sz.height,
+			0,
+			GL_RGBA,
+			GL_UNSIGNED_BYTE,
+			NULL);
+
+	ROS_DEBUG("here1");
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, sz.width, sz.height);
+	glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	CHECK_FRAMEBUFFER_STATUS();
 }
 
 GridRenderer::~GridRenderer() {
@@ -230,27 +291,19 @@ void GridRenderer::generateGrid()
 
 cv::Mat GridRenderer::renderGrid()
 {
-	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear the screen
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glEnable(GL_TEXTURE_2D);
+	glBindFramebuffer(GL_FRAMEBUFFER, fb);
 
-	// draw the grid
-	generateGrid();
+	glViewport(0,0, size.width, size.height);
 
-	ROS_DEBUG_STREAM("DREW GRID");
-
-	//set CAMERA POS
-	cv::Mat glViewMatrix = tfTransform2GLViewMat(c2w);
-
-	ROS_DEBUG_STREAM("VIEW MATRIX: " << glViewMatrix);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadMatrixd(&glViewMatrix.at<double>(0, 0));
-
-	ROS_DEBUG("set the view matrix");
+	glClearColor(0,0,0,0);
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 
-	//set camera intrinsic
-	glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
-	glLoadIdentity();            // Reset The Projection Matrix
+	//set up the intrinsic parameters
+	glMatrixMode(GL_PROJECTION);
+	/*glLoadIdentity();
 	double fx = K(0);
 	double fy = K(4);
 	double cx = K(2);
@@ -261,12 +314,24 @@ cv::Mat GridRenderer::renderGrid()
 	double zmax = 50;
 	double s = 0;
 	GLdouble perspMatrix[16]={2*fx/W,0,0,0,2*s/W,2*fy/H,0,0,2*(cx/W)-1,2*(cy/H)-1,(zmax+zmin)/(zmax-zmin),1,0,0,2*zmax*zmin/(zmin-zmax),0};
-	glLoadMatrixd(perspMatrix);
+	glLoadMatrixd(perspMatrix);*/
 
-	ROS_DEBUG("multiplied the view matrix");
 
-	// render scene
 
+
+	glMatrixMode(GL_MODELVIEW);
+
+	glLoadIdentity();
+
+	//move the camera
+	cv::Mat glViewMatrix = tfTransform2GLViewMat(c2w);
+
+	glLoadMatrixd(&glViewMatrix.at<double>(0, 0));
+
+	// render the grid
+	generateGrid();
+
+	// get the image
 	cv::Mat temp = cv::Mat(size.height, size.width, CV_8UC3);
 	cv::Mat result;
 
@@ -280,9 +345,9 @@ cv::Mat GridRenderer::renderGrid()
 
 	// Process buffer so it matches correct format and orientation
 	//cv::cvtColor(temp, tempImage, CV_BGR2RGB);
-	cv::flip(temp, result, 0);
-	//ROS_DEBUG("stop");
 
+	cv::flip(temp, result, 0);
+	//result = temp;
 
 	return result;
 }

@@ -29,6 +29,8 @@
 
 #include "geometry_msgs/PoseArray.h"
 
+#include "geometry_msgs/Pose.h"
+
 #include <eigen3/Eigen/Eigen>
 
 #include "mantis3/GridRenderer.h"
@@ -132,9 +134,16 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	}
 #endif
 
+	quad_detect_frame.img.img = original;
+	double min_yaw_diff = 0;
+	hyps = determineBestYaw(hyps, quad_detect_frame.img, min_yaw_diff);
+
 	visualizeHypothesis(quad_detect_frame.img.img.clone(), hyps.back(), quad_detect_frame.img.K, quad_detect_frame.img.D);
 
 	hypotheses_pub.publish(formPoseArray(hyps));
+
+	ros::Duration finalWait(0.5);
+	finalWait.sleep();
 
 }
 
