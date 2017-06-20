@@ -9,7 +9,7 @@
 #define MANTIS_INCLUDE_MANTIS2_MANTIS2PARAMS_H_
 
 
-#define SUPER_DEBUG true
+#define SUPER_DEBUG false
 
 #if SUPER_DEBUG
 bool imgReady = false;
@@ -153,7 +153,7 @@ std::vector<tf::Vector3> parseCoordinatesFromString(std::string str) {
 
 void getParameters()
 {
-	ros::param::param <std::string> ("~quadDetectCameraTopic", QUAD_DETECT_CAMERA_TOPIC, "camera/image_color");
+	ros::param::param <std::string> ("~quadDetectCameraTopic", QUAD_DETECT_CAMERA_TOPIC, "/camera/image_color");
 
 	ros::param::param <int> ("~rate", RATE, 10);
 

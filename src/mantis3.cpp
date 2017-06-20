@@ -31,6 +31,10 @@
 #include <tf/tf.h>
 #include <tf/tfMessage.h>
 
+#include "geometry_msgs/PoseArray.h"
+
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
+
 #include <eigen3/Eigen/Eigen>
 
 #include "mantis3/Mantis3Params.h"
@@ -39,31 +43,93 @@
 
 #include "mantis3/QuadDetection.h"
 
+#include "mantis3/CoPlanarPoseEstimator.h"
+
+#include "mantis3/HypothesisGeneration.h"
+
+#include "mantis3/HypothesisEvaluation.h"
+
+#include "mantis3/PoseClusterer.h"
+
+#include "mantis3/PoseAdjustment.h"
+
+#include "mantis3/PosePub.h"
+
 ros::Publisher hypotheses_pub;
 
-Frame quad_detect_frame;
+Frame measurement;
 
 std::vector<Hypothesis> hypotheses; // all of our best guesses as to where we are
 
 geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps);
+std::vector<tf::Quaternion> getQuatVec(std::vector<Hypothesis> hyps);
 
 void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
-	/*cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
 
-	quad_detect_frame.K = get3x3FromVector(cam->K);
-	quad_detect_frame.D = cv::Mat(cam->D, false);
-	quad_detect_frame.cam_info_msg = *cam;
-	quad_detect_frame.img_msg = *img;
-	quad_detect_frame.img = temp;
+	cv::Mat temp = cv_bridge::toCvShare(img, img->encoding)->image.clone();
+
+	measurement.img.K = get3x3FromVector(cam->K);
+	measurement.img.D = cv::Mat(cam->D, false);
+	measurement.img.img = temp;
+	measurement.img.frame_id = img->header.frame_id;
 
 	// detect quads in the image
-	int quadCount = detectQuadrilaterals(&quad_detect_frame);
+	int quadCount = detectQuadrilaterals(&measurement);
 
-	ROS_DEBUG_STREAM(quadCount << " quads detected");
+	//ROS_DEBUG_STREAM(quadCount << " quads detected");
 	ROS_WARN_COND(!quadCount, "no quadrilaterlals detected!");
+	if(quadCount == 0)
+		return;
 
-	// determine our next guesses*/
+	// determine our central guesses
+	std::vector<Hypothesis> hyps = generateHypotheses(undistortAndNormalizeQuadTestPoints(measurement.quads, measurement.img.K, measurement.img.D), measurement.img);
+
+	// cluster by angle
+	PoseClusterer pc(getQuatVec(hyps));
+	//hyps = pc.clusterByAngle(MAX_ANGLE_DIFFERENCE, quadCount).removeSmallClusters().convert2Hypotheses(hyps, false);
+	hyps = pc.clusterByAngle(MAX_ANGLE_DIFFERENCE, quadCount).keepLargestCluster().convert2Hypotheses(hyps, false);
+
+	if(hyps.size() == 0)
+	{
+		return;
+	}
+
+	//TODO add cases for too few hypos
+
+	// make it less likely for false positives to occur
+	cv::Mat cleaned = cleanImageByEdge(measurement.img.img);
+	cv::Mat original = measurement.img.img;
+	measurement.img.img = cleaned;
+
+	// evaluate each of the hypos using only white
+	evaluateHypotheses(hyps, measurement.img);
+
+	// get the best one
+	hyps = getBestNHypotheses(1, hyps);
+
+	// optimize this hypo
+	Hypothesis optim = optimizeHypothesisWithParticleFilter(hyps.back(), measurement.img);
+
+	// get all shifts for this hypo
+	hyps = computeAllShiftedHypothesesFAST(optim);
+
+
+	// evaluate all shifts
+	evaluateHypotheses(hyps, measurement.img, true);
+
+	// get the top 20
+	hyps = getBestNHypotheses(20, hyps);
+
+	// eliminate the yaw ambiguity using the full image
+	measurement.img.img = original;
+	double min_yaw_diff = 0;
+	hyps = determineBestYaw(hyps, measurement.img, min_yaw_diff);
+
+
+	// publish the pose if it meets our standards
+	publishPose(hyps.back(), measurement.img, min_yaw_diff);
+
 
 }
 
@@ -77,9 +143,8 @@ int main(int argc, char **argv)
 
 	getParameters();
 
-	hypotheses_pub = nh.advertise<geometry_msgs::PoseArray>(HYPOTHESES_PUB_TOPIC, 1);
-
-	ros::Rate loop_rate(RATE);
+	//hypotheses_pub = nh.advertise<geometry_msgs::PoseArray>(HYPOTHESES_PUB_TOPIC, 1);
+	posePub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose_estimate", 1);
 
 	image_transport::ImageTransport it(nh);
 
@@ -90,11 +155,22 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+std::vector<tf::Quaternion> getQuatVec(std::vector<Hypothesis> hyps){
+	std::vector<tf::Quaternion> quatVec;
+
+	for(auto e : hyps)
+	{
+		quatVec.push_back(e.getQuaternion());
+	}
+
+	return quatVec;
+}
+
 geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps)
 {
 	geometry_msgs::PoseArray poses;
 	for(auto& e : hyps){
-		poses.poses.push_back(e.toPoseMsg(quad_detect_frame.img.stamp, WORLD_FRAME).pose);
+		poses.poses.push_back(e.toPoseMsg(measurement.img.stamp, WORLD_FRAME).pose);
 	}
 	poses.header.frame_id = WORLD_FRAME;
 	return poses;

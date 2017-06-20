@@ -57,28 +57,9 @@ ros::Publisher hypotheses_pub;
 
 Frame quad_detect_frame;
 
+geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps);
+std::vector<tf::Quaternion> getQuatVec(std::vector<Hypothesis> hyps);
 
-
-std::vector<tf::Quaternion> getQuatVec(std::vector<Hypothesis> hyps){
-	std::vector<tf::Quaternion> quatVec;
-
-	for(auto e : hyps)
-	{
-		quatVec.push_back(e.getQuaternion());
-	}
-
-	return quatVec;
-}
-
-geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps)
-{
-	geometry_msgs::PoseArray poses;
-	for(auto& e : hyps){
-		poses.poses.push_back(e.toPoseMsg(quad_detect_frame.img.stamp, WORLD_FRAME).pose);
-	}
-	poses.header.frame_id = WORLD_FRAME;
-	return poses;
-}
 
 void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam)
 {
@@ -144,7 +125,7 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 
 	hypotheses_pub.publish(formPoseArray(hyps));
 
-	publishPose(hyps.back(), quad_detect_frame.img.stamp, min_yaw_diff);
+	publishPose(hyps.back(), quad_detect_frame.img, min_yaw_diff);
 
 	ros::Duration finalWait(0.5);
 	finalWait.sleep();
@@ -270,4 +251,25 @@ int main(int argc, char **argv)
 
 }
 
+
+std::vector<tf::Quaternion> getQuatVec(std::vector<Hypothesis> hyps){
+	std::vector<tf::Quaternion> quatVec;
+
+	for(auto e : hyps)
+	{
+		quatVec.push_back(e.getQuaternion());
+	}
+
+	return quatVec;
+}
+
+geometry_msgs::PoseArray formPoseArray(std::vector<Hypothesis> hyps)
+{
+	geometry_msgs::PoseArray poses;
+	for(auto& e : hyps){
+		poses.poses.push_back(e.toPoseMsg(quad_detect_frame.img.stamp, WORLD_FRAME).pose);
+	}
+	poses.header.frame_id = WORLD_FRAME;
+	return poses;
+}
 

@@ -326,11 +326,12 @@ cv::Mat cleanImageByEdge(cv::Mat img)
 	cv::GaussianBlur(mono, mono, MASK_BLUR_SIZE, MASK_BLUR_SIGMA, MASK_BLUR_SIGMA);
 	cv::Canny(mono, canny, CANNY_HYSTERESIS, 3 * CANNY_HYSTERESIS, 3);
 
-
+#if SUPER_DEBUG
 	cv::imshow("test", canny);
 	cv::waitKey(30);
 	ros::Duration wait(1);
 	wait.sleep();
+#endif
 
 
 	cv::Mat tmp=canny.clone();

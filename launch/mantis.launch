@@ -1,7 +1,10 @@
 <launch>
-	<node name="mantis3" pkg="mantis" type="mantis3" output="screen">
-		<rosparam file="$(find mantis)/params/map.yaml"/>
-	</node>
+
+	<group ns="mantis">
+		<node name="mantis3" pkg="mantis" type="mantis3" output="screen">
+			<rosparam file="$(find mantis)/params/map.yaml"/>
+		</node>
+	</group>
 	
 	<node pkg="tf" type="static_transform_publisher" name="cam_link_pub1" 
 			args="0 0 0 0 90 0 /bottom /base_link 100"/>

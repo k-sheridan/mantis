@@ -30,7 +30,7 @@ Hypothesis optimizeHypothesisWithParticleFilter(Hypothesis in, MantisImage img, 
 {
 	Hypothesis current_best = in;
 	evaluateOneHypothesis(current_best, img, true);
-	visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
+	//visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
 
 	ROS_DEBUG_STREAM("ITERATION 0 ERROR : " << current_best.error);
 
@@ -51,7 +51,7 @@ Hypothesis optimizeHypothesisWithParticleFilter(Hypothesis in, MantisImage img, 
 		}
 
 		ROS_DEBUG_STREAM("ITERATION " << i+1 << " ERROR : " << current_best.error);
-		visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
+		//visualizeHypothesis(img.img.clone(), current_best, img.K, img.D);
 
 	}
 

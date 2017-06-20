@@ -9,17 +9,30 @@
 #define MANTIS_INCLUDE_MANTIS3_POSEPUB_H_
 
 
-void publishPose(Hypothesis hyp, ros::Time stamp, double max_yaw_difference)
+void publishPose(Hypothesis hyp, MantisImage quad_detect_cam, double max_yaw_difference)
 {
 	ROS_DEBUG_STREAM("yaw diff: " << max_yaw_difference);
 
 	if(max_yaw_difference > MINIMUM_YAW_DIFFERENCE)
 	{
+		tf::StampedTransform c2b;
+		try {
+			tf_listener->lookupTransform(BASE_FRAME, quad_detect_cam.frame_id,
+					ros::Time(0), c2b);
+		} catch (tf::TransformException& e) {
+			ROS_WARN_STREAM(e.what());
+		}
+
+		//transform back into the base frame
+
+		Hypothesis base = hyp;
+		base.setW2C(hyp.getW2C() * c2b);
+
 		ROS_DEBUG_STREAM("publishing pose");
 
 		geometry_msgs::PoseWithCovarianceStamped pose;
 
-		pose.header.stamp = stamp;
+		pose.header.stamp = quad_detect_cam.stamp;
 		pose.header.frame_id = WORLD_FRAME;
 
 		pose.pose.pose.orientation.w = hyp.getQuaternion().w();
@@ -36,11 +49,11 @@ void publishPose(Hypothesis hyp, ros::Time stamp, double max_yaw_difference)
 		ROS_DEBUG_STREAM("variance: " << var);
 
 		pose.pose.covariance = {var, 0, 0, 0, 0, 0,
-								0, var, 0, 0, 0, 0,
-								0, 0, var, 0, 0, 0,
-								0, 0, 0, var, 0, 0,
-								0, 0, 0, 0, var, 0,
-								0, 0, 0, 0, 0, var};
+				0, var, 0, 0, 0, 0,
+				0, 0, var, 0, 0, 0,
+				0, 0, 0, var, 0, 0,
+				0, 0, 0, 0, var, 0,
+				0, 0, 0, 0, 0, var};
 
 		posePub.publish(pose);
 
