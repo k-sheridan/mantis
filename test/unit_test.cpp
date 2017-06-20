@@ -29,7 +29,7 @@
 
 #include "geometry_msgs/PoseArray.h"
 
-#include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 
 #include <eigen3/Eigen/Eigen>
 
@@ -50,6 +50,8 @@
 #include "mantis3/PoseClusterer.h"
 
 #include "mantis3/PoseAdjustment.h"
+
+#include "mantis3/PosePub.h"
 
 ros::Publisher hypotheses_pub;
 
@@ -141,6 +143,8 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 	visualizeHypothesis(quad_detect_frame.img.img.clone(), hyps.back(), quad_detect_frame.img.K, quad_detect_frame.img.D);
 
 	hypotheses_pub.publish(formPoseArray(hyps));
+
+	publishPose(hyps.back(), quad_detect_frame.img.stamp, min_yaw_diff);
 
 	ros::Duration finalWait(0.5);
 	finalWait.sleep();
@@ -254,6 +258,8 @@ int main(int argc, char **argv)
 	ROS_DEBUG("beggining dataset");
 
 	hypotheses_pub = nh.advertise<geometry_msgs::PoseArray>(HYPOTHESES_PUB_TOPIC, 1);
+
+	posePub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose_estimate", 1);
 
 	image_transport::ImageTransport it(nh);
 

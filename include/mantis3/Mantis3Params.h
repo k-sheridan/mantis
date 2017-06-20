@@ -47,7 +47,7 @@ cv::Mat final;
 #define MASK_CLOSE_ASCEND_ITER 3
 #define MASK_ERODE_ITER 3
 
-#define COLOR_SEARCH_AREA cv::Size(20, 20)
+#define COLOR_SEARCH_AREA cv::Size(10, 10)
 //use these to tune for the competition
 #define MAX_WHITE_ERROR 20000
 #define MAX_RED_ERROR 2000
@@ -81,6 +81,8 @@ std::vector<tf::Vector3> red_map;
 std::vector<tf::Vector3> green_map;
 
 tf::TransformListener* tf_listener;
+
+ros::Publisher posePub;
 
 cv::RNG rng(1);
 

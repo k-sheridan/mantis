@@ -517,7 +517,7 @@ std::vector<Hypothesis> getBestNHypotheses(int n, std::vector<Hypothesis> hyps){
 }
 
 
-std::vector<Hypothesis> determineBestYaw(std::vector<Hypothesis> hyps, MantisImage img, double min_error_diff){
+std::vector<Hypothesis> determineBestYaw(std::vector<Hypothesis> hyps, MantisImage img, double& min_error_diff){
 	tf::Transform rotZ = tf::Transform(tf::Quaternion(0, 0, 1/sqrt(2), 1/sqrt(2)));
 
 	std::vector<std::vector<Hypothesis> > rots;
@@ -574,7 +574,7 @@ std::vector<Hypothesis> determineBestYaw(std::vector<Hypothesis> hyps, MantisIma
 	}
 
 	ROS_DEBUG_STREAM("abs min: " << min1 <<" abs min 2: " << min2);
-	min_error_diff = min1;
+	min_error_diff = min2;
 
 	return best;
 }
