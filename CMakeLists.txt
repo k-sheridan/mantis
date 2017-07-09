@@ -59,6 +59,10 @@ catkin_package(
    DEPENDS opencv
 )
 
+add_library(markovPlane include/mantis3/Markov.h)
+set_target_properties(markovPlane PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(markovPlane ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
 add_library(mantisGridRenderer include/mantis3/GridRenderer.cpp)
 target_link_libraries(mantisGridRenderer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${GLEW_LIBRARY})
 
@@ -81,7 +85,7 @@ add_executable(ogl_test test/opengl_test.cpp)
 target_link_libraries(ogl_test ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${GLEW_LIBRARY})
 
 add_executable(mantis3 src/mantis3.cpp)
-target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer mantisGridRenderer)
+target_link_libraries(mantis3 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES} poseEstimation clusterer mantisGridRenderer markovPlane)
 
 #add_executable(mantis2 src/mantis2.cpp)
 #target_link_libraries(mantis2 ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Eigen_LIBRARIES})

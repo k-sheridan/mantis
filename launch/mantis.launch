@@ -1,9 +1,10 @@
 <launch>
 
-	<group ns="mantis">
+	<group ns="m7">
 		<node name="mantis3" pkg="mantis" type="mantis3" output="screen">
 			<rosparam file="$(find mantis)/params/map.yaml"/>
 		</node>
+	
 	</group>
 	
 	<node pkg="tf" type="static_transform_publisher" name="cam_link_pub1" 

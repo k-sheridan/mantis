@@ -55,6 +55,7 @@
 
 #include "mantis3/PosePub.h"
 
+#include "mantis3/Markov.h"
 ros::Publisher hypotheses_pub;
 
 Frame measurement;
@@ -133,6 +134,7 @@ void quadDetection(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::Cam
 
 }
 
+
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "mantis");
@@ -144,7 +146,7 @@ int main(int argc, char **argv)
 	getParameters();
 
 	//hypotheses_pub = nh.advertise<geometry_msgs::PoseArray>(HYPOTHESES_PUB_TOPIC, 1);
-	posePub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose_estimate", 1);
+	posePub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("mantis/pose_estimate", 1);
 
 	image_transport::ImageTransport it(nh);
 
@@ -154,6 +156,34 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+
+
+/*
+ * TEST MARKOV
+int main(int argc, char **argv)
+{
+	markovPlane yaw;
+	for(int i=0; i<yaw.size(); ++i)
+		yaw[i] = 0.0;
+
+	yaw[130] = 0.6;
+	yaw[0] = 0.2;
+	yaw[320] = 0.1;
+	yaw[190] = 0.1;
+//	for(int i=0; i<yaw.size(); ++i)
+//		std::cout<<yaw[i]<<" ";
+
+//	plotMarkovPlane(yaw);
+	for(int i=0; i<10; ++i)
+	{
+		updateWeights(yaw, 5);
+	//	for(int i=0; i<yaw.size(); ++i)
+	//		std::cout<<yaw[i]<<" ";
+		plotMarkovPlane(yaw);
+	}
+	return 0;
+}
+*/
 
 std::vector<tf::Quaternion> getQuatVec(std::vector<Hypothesis> hyps){
 	std::vector<tf::Quaternion> quatVec;
