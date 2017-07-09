@@ -159,26 +159,42 @@ int main(int argc, char **argv)
 
 
 /*
- * TEST MARKOV
+// TEST MARKOV
 int main(int argc, char **argv)
 {
-	markovPlane yaw;
+	markovPlane yaw, nyaw;
 	for(int i=0; i<yaw.size(); ++i)
-		yaw[i] = 0.0;
+		{
+			yaw[i] = 0.0; nyaw[i] = 0.0;
+		}
 
-	yaw[130] = 0.6;
-	yaw[0] = 0.2;
+	yaw[130] = 0.45;
+	yaw[120] = 0.35;
 	yaw[320] = 0.1;
 	yaw[190] = 0.1;
+
+	nyaw[10] = 0.2;
+	nyaw[80] = 0.1;
+	nyaw[350] = 0.5;
+	nyaw[180] = 0.2;
 //	for(int i=0; i<yaw.size(); ++i)
 //		std::cout<<yaw[i]<<" ";
 
-//	plotMarkovPlane(yaw);
-	for(int i=0; i<10; ++i)
+	plotMarkovPlane(yaw);
+	updateWeights(yaw, 1.2);
+	mergeMarkovPlanes(yaw, nyaw);
+
+	plotMarkovPlane(yaw);
+
+	double stddev = 0.8;
+	//IT SATURATES WITH THE MAX VALUE. maybe make a liear or sub-linear changing stddev and test?
+	for(int i=0; i<600; ++i)
 	{
-		updateWeights(yaw, 5);
-	//	for(int i=0; i<yaw.size(); ++i)
-	//		std::cout<<yaw[i]<<" ";
+		ROS_DEBUG_STREAM(i);
+		updateWeights(yaw, stddev); stddev+= 0.001;
+//		updateWeights(yaw, (i/100+1)*1.2);
+//		updateWeights(yaw, (i/100+1)*1.2);
+
 		plotMarkovPlane(yaw);
 	}
 	return 0;

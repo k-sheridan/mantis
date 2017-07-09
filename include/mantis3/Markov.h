@@ -6,11 +6,20 @@
 #include<float.h>
 #include <opencv2/plot.hpp>
 #include <opencv2/highgui.hpp>
-
+#include "Mantis3Types.h"
 using namespace cv;
 
 #define DEGREES 360
 typedef std::array<double, 360> markovPlane;
+
+/*
+ * TODO: Make sure yaw coming from hypothesis is correct
+ */
+
+
+
+
+
 /*
  * Returns a weighted value of gaussian distribution
  */
@@ -48,7 +57,11 @@ void normalize(markovPlane input, markovPlane& output)
 
 //	sum = 0.0;
 //	for(int i=0; i<output.size(); ++i)
-//		sum+= output[i];
+//		{
+//			sum+= output[i];
+//			std::cout<<output[i]<<" ";
+//		}
+//	std::cout<<"\n";
 //	ROS_DEBUG_STREAM("NEW SUM:" << sum);
 }
 
@@ -104,14 +117,67 @@ void updateWeights(markovPlane& yaw, double stddev)
 		aux[i] = max;
 	}
 
-//	ROS_DEBUG_STREAM("AUX");
-//	for(int i=0; i<aux.size(); ++i)
-//		std::cout<<aux[i]<<" ";
-//	std::cout<<"\n";
-
 	//normalize and copy
 	normalize(aux, yaw);
 }
+
+//
+///*
+// * The issue with this:
+// * 	The distribution tends to get flatter and flatter as time passes. However,
+// * 		there's always one peak that rises early. This peak will keep growing taller,
+// * 		the difference between this peak and everyother peak keeps increasing. So the model essentially keeps getting more sure about this peak when it actually shouldnt.
+// * 		This is because it adds its own gaussian distribution onto itself. ie, adding the largest value of distribution to the highest peak.
+// */
+//void updateWeights(markovPlane& yaw, double stddev)
+//{
+//	markovPlane aux;
+//	double max, temp;
+//	int diff;
+//	for(int i=0; i<aux.size(); ++i)
+//	{
+//		max = 0.0;
+//		diff = (DEGREES/2)+i;
+//
+//		/*when i < 180
+//		 * 	Go right and find new possible weight, then go left(wrap around) and find weight.
+//		 *  Going left since that displacement is small
+//		 */
+//		if(i <= DEGREES/2)
+//		{
+//			for(int j=0; j<diff; ++j)
+//			{
+//				//if(j == i) continue;
+//				max += calculateWeight((double)i, (double)j, stddev, yaw[j]);
+//			}
+//
+//			for(int j=diff; j<DEGREES; ++j)
+//			{
+//				//DEGREES - j is basically looking at the array in the opposite direction (-1, -2 ....)
+//				max += calculateWeight((double)i, (double)(-(DEGREES-j)), stddev, yaw[j]);
+//			}
+//		}
+//		// when i > 180
+//		else
+//		{
+//			for(int j=i; j<diff; ++j)
+//			{
+//				//if(j==i) continue;
+//				max += calculateWeight((double)i, (double)j, stddev, yaw[j%DEGREES]);
+//			}
+//
+//			for(int j=(diff%DEGREES); j<i; ++j)
+//			{
+//				max += calculateWeight((double)i, (double)j, stddev, yaw[j]);
+//			}
+//		}
+//
+//		aux[i] = max;
+//	}
+//
+//	//normalize and copy
+//	normalize(aux, yaw);
+//}
 
 void plotMarkovPlane(markovPlane yaw)
 {
@@ -128,6 +194,44 @@ void plotMarkovPlane(markovPlane yaw)
 	plot->render( plot_result );
 
 	imshow( "plot", plot_result );
-	waitKey(500);
+	waitKey(5000);
 
 }
+
+void mergeMarkovPlanes(markovPlane& history, markovPlane newYaw)
+{
+	//MULTIPLYING DOES NOT WORK. DROPS BELOW DBL_MIN
+	//maybe scale new value and add?
+	for(int i=0; i<history.size(); ++i)
+	{
+		std::cout<<history[i]<<" ";
+		history[i] *= newYaw[i];
+	}
+	/*
+	std::cout<<"\n";
+	for(int i=0; i<360; ++i)
+	{
+		std::cout<<history[i]<<" ";
+	}
+	*/
+//	for(int i=0; i<history.size(); ++i)
+//		history[i] += newYaw[i];
+
+	normalize(history);
+	ROS_DEBUG_STREAM("merge done");
+}
+
+void updateHypothesis(markovPlane yaw, std::vector<Hypothesis>& hypothesis)
+{
+	tf::Quaternion q;
+	float hypothesisYaw;
+	for(int i=0; i<hypothesis.size(); ++i)
+	{
+		q = hypothesis[i].getQuaternion();
+		//yaw   = atan2(2.0 * (q.q3 * q.q0 + q.q1 * q.q2) , - 1.0 + 2.0 * (q.q0 * q.q0 + q.q1 * q.q1));
+		hypothesisYaw   = atan2(2.0 * (q.getZ() * q.getW() + q.getX() * q.getY()) , - 1.0 + 2.0 * (q.getW() * q.getW() + q.getX() * q.getX()));
+		//TODO: the 1/yaw[] could be extremely large if yaw[] is extremely small. make sure it works
+		hypothesis[i].error = hypothesis[i].error * 1/(yaw[(int)hypothesisYaw]);
+	}
+}
+
