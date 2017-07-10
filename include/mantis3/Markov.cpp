@@ -2,7 +2,10 @@
 
 //FWHM
 #define FWHM_NOISE 0.84925690021
+//Total width (3*stddev)
 #define GAUSSIAN_WIDTH_NOISE 1.0/3.0
+
+
 
 MarkovModel::MarkovModel(markovPlane inp)
 {
@@ -16,7 +19,11 @@ MarkovModel::MarkovModel(Hypothesis hyp)
 	for(int i=0; i<p.size();++i)
 		p[i] = 0.0;
 
-	p[(int)(yaw*180.0/M_PI)] = 1;
+	yaw *= 180.0/M_PI;
+	if(yaw < 0) yaw += DEGREES;
+
+	p[(int)(yaw)] = 1;
+	updateWeights(p, 3);
 }
 
 double MarkovModel::calculateWeight(double x, double mu, double stddev, double y)
@@ -84,7 +91,7 @@ void MarkovModel::updateWeights(markovPlane& yaw, double stddev)
 		{
 			for(int j=0; j<diff; ++j)
 			{
-				//if(j == i) continue;
+
 				max += calculateWeight((double)i, (double)j, stddev, yaw[j]);
 			}
 
@@ -99,7 +106,6 @@ void MarkovModel::updateWeights(markovPlane& yaw, double stddev)
 		{
 			for(int j=i; j<diff; ++j)
 			{
-				//if(j==i) continue;
 				max += calculateWeight((double)i, (double)j, stddev, yaw[j%DEGREES]);
 			}
 
@@ -127,7 +133,7 @@ void MarkovModel::plotMarkovPlane()
 
 	cv::Mat plot_result;
 	cv::Ptr<cv::plot::Plot2d> plot = plot::createPlot2d(data);
-	plot->setPlotBackgroundColor( Scalar( 50, 50, 50 ) ); // i think it is not implemented yet
+	plot->setPlotBackgroundColor( Scalar( 50, 50, 50 ) );
 	plot->setPlotLineColor( Scalar( 50, 50, 255 ) );
 	plot->render( plot_result );
 
@@ -146,7 +152,7 @@ void MarkovModel::plotMarkovPlane(markovPlane yaw)
 
 	cv::Mat plot_result;
 	cv::Ptr<cv::plot::Plot2d> plot = plot::createPlot2d(data);
-	plot->setPlotBackgroundColor( Scalar( 50, 50, 50 ) ); // i think it is not implemented yet
+	plot->setPlotBackgroundColor( Scalar( 50, 50, 50 ) );
 	plot->setPlotLineColor( Scalar( 50, 50, 255 ) );
 	plot->render( plot_result );
 
@@ -161,7 +167,7 @@ void MarkovModel::senseFusion(markovPlane sense)
 
 	for(int i=0; i<p.size(); ++i)
 	{
-		//INCREASE PRECISION TO PREVENT IT GOES BELOW DBL_MIN.
+		//INCREASE PRECISION TO PREVENT IT GOING BELOW DBL_MIN.
 		p[i] = p[i]*newMax;
 		sense[i] = sense[i]*newMax;
 
@@ -170,28 +176,10 @@ void MarkovModel::senseFusion(markovPlane sense)
 
 	for(int i=0; i<p.size(); ++i)
 	{
-		p[i] *= sense[i];//(history[i] + newYaw[i])/2;
+		p[i] *= sense[i];
 	}
-
-//	int max = 0;
-//	for(int i=0; i<360; ++i)
-//	{
-//		if(history[i] > history[max])
-//			max = i;
-//	}
-//	ROS_DEBUG_STREAM("MAX:"<<max);
-	/*
-	std::cout<<"\n";
-	for(int i=0; i<360; ++i)
-	{
-		std::cout<<history[i]<<" ";
-	}
-	*/
-//	for(int i=0; i<history.size(); ++i)
-//		history[i] += newYaw[i];
 
 	normalize();
-	ROS_DEBUG_STREAM("merge done");
 }
 
 void MarkovModel::senseFusion(Hypothesis hypothesis)
@@ -201,7 +189,11 @@ void MarkovModel::senseFusion(Hypothesis hypothesis)
 	markovPlane sense;
 	for(int i=0; sense.size(); ++i)
 		sense[i] = 0.0;
-	sense[(int)(y*180.0/M_PI)] = 1;
+
+	y *=180.0/M_PI;
+	if(y<0) y+= DEGREES;
+
+	sense[(int)(y)] = 1;
 
 	//FWHM = 8.25. ie. +- 4.125 degrees
 	updateWeights(sense, 3.5);
@@ -209,15 +201,20 @@ void MarkovModel::senseFusion(Hypothesis hypothesis)
 	senseFusion(sense);
 }
 
+/*
+ *
+ */
 void MarkovModel::updateHypothesis(std::vector<Hypothesis>& hypothesis)
 {
 	double roll, pitch, yaw;
 	for(int i=0; i<hypothesis.size(); ++i)
 	{
 		hypothesis[i].getW2C().getBasis().getRPY(roll,pitch,yaw);
-		//yaw   = atan2(2.0 * (q.q3 * q.q0 + q.q1 * q.q2) , - 1.0 + 2.0 * (q.q0 * q.q0 + q.q1 * q.q1));
+		yaw *= 180.0/M_PI;
+		if(yaw < 0) yaw += DEGREES;
+
 		//TODO: the 1/yaw[] could be extremely large if yaw[] is extremely small. make sure it works
-		hypothesis[i].error = hypothesis[i].error * 1/(p[(int)(yaw*180.0/M_PI)]);
+		hypothesis[i].error = hypothesis[i].error * 1/(p[(int)(yaw)]);
 	}
 }
 
@@ -230,30 +227,50 @@ void MarkovModel::updateHypothesis(std::vector<Hypothesis>& hypothesis)
 void MarkovModel::convolve(double dTheta, double dt)
 {
 	markovPlane aux;
-	double convDisplacement = dTheta*180/M_PI;
-	for(int i=convDisplacement; i<p.size()+convDisplacement; ++i)
+	int convDisplacement = (int)dTheta*180/M_PI;
+	if(dTheta > 0)
 	{
-		aux[i%DEGREES] = p[i-convDisplacement];
+		for(int i=convDisplacement; i<p.size()+convDisplacement; ++i)
+		{
+			aux[i%DEGREES] = p[i-convDisplacement];
+		}
+	}
+	else
+	{
+		convDisplacement *= -1;
+		for(int i=0; i<p.size(); ++i)
+		{
+			aux[i] = p[(convDisplacement + i)%DEGREES];
+		}
 	}
 
-	for(int i=0; i<360; ++i)
-		std::cout<<aux[i]<<" ";
+
 
 	p = aux;
-	std::cout<<"\n";
-	for(int i=0; i<360; ++i)
-		std::cout<<p[i]<<" ";
-
-	for(int i=0; i<360; ++i)
-			if(p[i] == 1) std::cout<<"\n\n"<<i<<"\n\n";
 
 
 
-	//
-	updateWeights(p, GAUSSIAN_WIDTH_NOISE*dt*11.5/30.0);
-	for(int i=0; i<360; ++i)
-		std::cout<<p[i]<<" ";
+
+
 	//stepwise update < ONESTEP update (linearly)(1.5*(60 times) < 30*(1 time))
+	updateWeights(p, GAUSSIAN_WIDTH_NOISE*dt*11.5/30.0);
+
 }
 
+markovPlane MarkovModel::getDistrbution()
+{
+	return p;
+}
+
+double MarkovModel::getYaw()
+{
+	int max = 0;
+	for(int i=0; i<p.size();++i)
+	{
+		if(p[i] > p[max])
+			max = i;
+	}
+
+	return (p[max] * M_PI / 180);
+}
 
