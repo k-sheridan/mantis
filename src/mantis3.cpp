@@ -55,7 +55,7 @@
 
 #include "mantis3/PosePub.h"
 
-#include "mantis3/Markov.h"
+#include "mantis3/Markov.cpp"
 ros::Publisher hypotheses_pub;
 
 Frame measurement;
@@ -168,35 +168,99 @@ int main(int argc, char **argv)
 			yaw[i] = 0.0; nyaw[i] = 0.0;
 		}
 
-	yaw[130] = 0.45;
-	yaw[120] = 0.35;
-	yaw[320] = 0.1;
-	yaw[190] = 0.1;
+	yaw[130] = 0;
+	yaw[120] = 1;
+	yaw[320] = 0;
+	yaw[190] = 0;
+	MarkovModel mod(yaw);
+	double dTheta = 45*M_PI/180;
+	double dT = 5;
 
-	nyaw[10] = 0.2;
-	nyaw[80] = 0.1;
-	nyaw[350] = 0.5;
-	nyaw[180] = 0.2;
-//	for(int i=0; i<yaw.size(); ++i)
-//		std::cout<<yaw[i]<<" ";
-
-	plotMarkovPlane(yaw);
-	updateWeights(yaw, 1.2);
-	mergeMarkovPlanes(yaw, nyaw);
-
-	plotMarkovPlane(yaw);
-
-	double stddev = 0.8;
-	//IT SATURATES WITH THE MAX VALUE. maybe make a liear or sub-linear changing stddev and test?
-	for(int i=0; i<600; ++i)
+	for(int i=0; i<50; ++i)
 	{
-		ROS_DEBUG_STREAM(i);
-		updateWeights(yaw, stddev); stddev+= 0.001;
-//		updateWeights(yaw, (i/100+1)*1.2);
-//		updateWeights(yaw, (i/100+1)*1.2);
-
-		plotMarkovPlane(yaw);
+		mod.plotMarkovPlane();
 	}
+	mod.convolve(dTheta, dT);
+
+	for(int i=0; i<100; ++i)
+	{
+		mod.plotMarkovPlane();
+	}
+
+	nyaw[10] = 0;
+	nyaw[80] = 0;
+	nyaw[120] = 1;
+	nyaw[330] = 0;
+	nyaw[180] = 0;
+
+
+//	ROS_DEBUG_STREAM("Stepwise update");
+//	for(int i=0; i<60; ++i)
+//	{
+//		updateWeights(yaw, 1.5);
+//		plotMarkovPlane(yaw);
+//	}
+//	for(int i=0; i<50; ++i)
+//		plotMarkovPlane(yaw);
+//
+//	ROS_DEBUG_STREAM("ONESTEP update");
+//	updateWeights(nyaw, (90.0/3)*11.5/30);
+//	for(int i=0; i<100; ++i)
+//		plotMarkovPlane(nyaw);
+//
+//
+//
+//	for(int i=0; i<yaw.size(); ++i)
+//			{
+//				yaw[i] = 0.0; nyaw[i] = 0.0;
+//			}
+//
+//		yaw[130] = 0;
+//		yaw[120] = 1;
+//		yaw[320] = 0;
+//		yaw[190] = 0;
+//
+//		nyaw[10] = 0;
+//		nyaw[80] = 0;
+//		nyaw[120] = 1;
+//		nyaw[330] = 0;
+//		nyaw[180] = 0;
+//
+//		ROS_DEBUG_STREAM("Stepwise update");
+//		for(int i=0; i<60; ++i)
+//		{
+//			updateWeights(yaw, 4);
+//			plotMarkovPlane(yaw);
+//		}
+//		for(int i=0; i<50; ++i)
+//			plotMarkovPlane(yaw);
+//
+//		ROS_DEBUG_STREAM("ONESTEP update");
+//		updateWeights(nyaw, (240.0/3)*11.5/30);
+//		for(int i=0; i<100; ++i)
+//			plotMarkovPlane(nyaw);
+
+
+//	ROS_DEBUG_STREAM("SHOWING MODEL");
+//	plotMarkovPlane(yaw);
+//	updateWeights(nyaw, 30);
+//	ROS_DEBUG_STREAM("SHOWING INPUT");
+//	plotMarkovPlane(nyaw);
+//	mergeMarkovPlanes(yaw, nyaw);
+//	for(int i=0; i<100; ++i)
+//		plotMarkovPlane(yaw);
+
+//	double stddev = 0.8;
+//	//IT SATURATES WITH THE MAX VALUE. maybe make a liear or sub-linear changing stddev and test?
+//	for(int i=0; i<600; ++i)
+//	{
+//		ROS_DEBUG_STREAM(i);
+//		updateWeights(yaw, stddev); stddev+= 0.001;
+////		updateWeights(yaw, (i/100+1)*1.2);
+////		updateWeights(yaw, (i/100+1)*1.2);
+//
+//		plotMarkovPlane(yaw);
+//	}
 	return 0;
 }
 */
